@@ -1,0 +1,20 @@
+{
+  "PC1_weather_driven_synthetic": {
+    "BOTH": 0.8478088293782671,
+    "CLOCK": -0.023297495568175064,
+    "TREND": 0.0,
+    "WEATHER": 0.801343909295963
+  },
+  "PC2_calendar_driven_synthetic": {
+    "BOTH": 0.5508288441631197,
+    "CLOCK": 0.5837268331525401,
+    "TREND": 0.0,
+    "WEATHER": 0.259588982146418
+  },
+  "PC3_shuffled_pothole_target": {
+    "BOTH": 0.02300720128146394,
+    "CLOCK": 0.026077727370236725,
+    "TREND": 0.0,
+    "WEATHER": 0.002180860343044988
+  }
+}
