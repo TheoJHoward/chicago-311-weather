@@ -1,0 +1,20 @@
+[project]
+name = "chicago-311-weather"
+version = "0.1.0"
+description = "Calendar-blind: can a model learn Chicago's seasonal 311 complaint calendar from daily weather alone?"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "requests",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["study"]
