@@ -1,0 +1,89 @@
+{
+  "window_start": "2019-01-01",
+  "window_end": "2026-08-31",
+  "days_in_window": 2800,
+  "days_with_no_311_record_of_any_type": [],
+  "rows_outside_window_discarded": 0,
+  "mapped_types": {
+    "Abandoned Vehicle Complaint": {
+      "category": "abandoned vehicle",
+      "first_day_in_window": "2019-01-01",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 330131
+    },
+    "Alley Pothole Complaint": {
+      "category": "pothole",
+      "first_day_in_window": "2019-01-02",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 55163
+    },
+    "Graffiti Removal Request": {
+      "category": "graffiti",
+      "first_day_in_window": "2019-01-03",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 686184
+    },
+    "Pothole in Street Complaint": {
+      "category": "pothole",
+      "first_day_in_window": "2019-01-01",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 290697
+    },
+    "Rodent Baiting/Rat Complaint": {
+      "category": "rodent",
+      "first_day_in_window": "2019-02-25",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 364495
+    },
+    "Tree Debris Clean-Up Request": {
+      "category": "tree debris",
+      "first_day_in_window": "2019-01-03",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 211639
+    },
+    "Water in Basement Complaint": {
+      "category": "basement",
+      "first_day_in_window": "2019-01-01",
+      "last_day_in_window": "2026-08-31",
+      "count_in_window": 66764
+    }
+  },
+  "categories": {
+    "pothole": {
+      "total_in_window": 345860,
+      "zero_count_days": 0,
+      "max_day_count": 615,
+      "mean_day_count": 123.521
+    },
+    "rodent": {
+      "total_in_window": 364495,
+      "zero_count_days": 55,
+      "max_day_count": 534,
+      "mean_day_count": 130.177
+    },
+    "basement": {
+      "total_in_window": 66764,
+      "zero_count_days": 75,
+      "max_day_count": 3653,
+      "mean_day_count": 23.844
+    },
+    "graffiti": {
+      "total_in_window": 686184,
+      "zero_count_days": 49,
+      "max_day_count": 1314,
+      "mean_day_count": 245.066
+    },
+    "tree debris": {
+      "total_in_window": 211639,
+      "zero_count_days": 48,
+      "max_day_count": 2321,
+      "mean_day_count": 75.585
+    },
+    "abandoned vehicle": {
+      "total_in_window": 330131,
+      "zero_count_days": 0,
+      "max_day_count": 664,
+      "mean_day_count": 117.904
+    }
+  }
+}
