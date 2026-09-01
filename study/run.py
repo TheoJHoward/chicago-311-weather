@@ -50,8 +50,11 @@ def main() -> int:
     )
 
     meta = {
-        "window_start": str(days.iloc[0].date()),
-        "window_end": str(days.iloc[-1].date()),
+        "data_window_start": str(daily["day"].iloc[0].date()),
+        "data_window_end": str(daily["day"].iloc[-1].date()),
+        "data_window_days": int(len(daily)),
+        "modelled_first_day": str(days.iloc[0].date()),
+        "modelled_last_day": str(days.iloc[-1].date()),
         "rows_after_warmup_drop": int(len(feat)),
         "training_days": int(train.sum()),
         "training_first_day": str(days[train].iloc[0].date()),
@@ -126,11 +129,14 @@ def main() -> int:
     lines = [
         "# Results",
         "",
-        f"Window {meta['window_start']} through {meta['window_end']}. "
+        f"Data window {meta['data_window_start']} through "
+        f"{meta['data_window_end']} ({meta['data_window_days']} days). The "
+        f"first seven days are dropped because their lags reach before the "
+        f"window start, so the modelled days run "
+        f"{meta['modelled_first_day']} through {meta['modelled_last_day']}. "
         f"Training days {meta['training_first_day']} through "
-        f"{meta['training_last_day']} ({meta['training_days']} days after "
-        f"dropping the seven warm-up days whose lags reach before the window "
-        f"start). Test days {meta['test_first_day']} through "
+        f"{meta['training_last_day']} ({meta['training_days']} days). "
+        f"Test days {meta['test_first_day']} through "
         f"{meta['test_last_day']} ({meta['test_days']} days).",
         "",
         "All errors are mean absolute error of log(1 + count) on the test set. "
