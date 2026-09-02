@@ -110,3 +110,47 @@ shell whose timezone setting was ignored, so it returned the UTC date — by the
 already past midnight — instead of the Chicago date the repository dates by.
 
 No content other than the date stamps is affected.
+
+## 2026-09-02 — All four visualization pages were restyled
+
+The four pages under `viz/` — `year_strip.html`, `year_strip_exploratory.html`,
+`year_ring.html` and `slider.html` — were rebuilt onto a shared set of colour
+and type tokens, a viewport-height layout that cannot scroll, and a lighter
+furniture set: a horizontal legend without a card, a single hairline above the
+footer, and one line of key help in place of a five-line block. The exploratory
+page's banner became a rule-and-text line instead of a filled box.
+
+An earlier record in this repository claimed that the registered visualization
+pages were byte-identical to the state at `68cb6dd`. That claim describes
+`68cb6dd` and remains true of it. It is superseded from this commit forward:
+all four pages differ from `68cb6dd` by design.
+
+No registered file, no result and no number changed. The five protected paths —
+`PREREG.md`, `PREREG_MAPPING.md`, `results/results.json`, `results/results.md`
+and `results/frames.json` — are untouched, and `test_registered_results_untouched`
+passes. The pages read the same `results/frames.json` and
+`results/exploratory_frames.json` they read before.
+
+The category colour assignment changed: the six categories were given a palette
+validated for separation under simulated colour-vision deficiency, in a fixed
+stack order that is part of that validation. Basement is no longer rendered in
+blue. The repository's prose was searched for colour words describing the chart
+— nine markdown files, for `blue`, `red`, `green`, `amber`, `orange`, `violet`,
+`purple`, `pink`, `yellow`, `colour`, `color`, `swatch` and `band` — and nothing
+matched, so no prose was made false by the reassignment and none was changed.
+
+## 2026-09-02 — A file outside the repository was read during this work
+
+A preview call was issued before the session's working directory had moved to
+this repository. The harness resolved it against the previous directory and
+read another project's launch configuration, briefly starting an unrelated
+local server, which was stopped immediately. Nothing outside this repository
+was written and no file outside it was modified.
+
+The practice that prevents a recurrence is not a reminder to check first: the
+browser and server path was removed from this work entirely. The page layout is
+now asserted from the built HTML — a viewport-height flex column with hidden
+overflow and no fixed pixel height on the plot band — by
+`tests/test_viz.py::test_pages_declare_viewport_fit`, which needs no browser,
+no server and no launch configuration. Rendered-viewport measurement, if it is
+wanted, happens outside this repository.
