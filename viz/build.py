@@ -25,12 +25,40 @@ def build(template: Path, frames: Path, out: Path) -> None:
     out.write_text(page, encoding="utf-8")
 
 
+PAGES = ["year_strip", "year_ring"]
+
+
+def build_slider(template: Path, grid: Path, out: Path) -> None:
+    """The slider toy carries two constants in its prose as well as its data,
+    so both are substituted from the same file the grid came from."""
+    text = template.read_text(encoding="utf-8")
+    data = json.loads(grid.read_text(encoding="utf-8"))
+    page = (text
+            .replace("__GRID_JSON__", json.dumps(data, separators=(",", ":")))
+            .replace("__WIND__", f"{data['wind']:.2f}")
+            .replace("__TLAST__", data["t_last_training_day"]))
+    for token in FORBIDDEN:
+        assert token not in page, f"page is not offline: contains {token!r}"
+    for left in ["__GRID_JSON__", "__WIND__", "__TLAST__"]:
+        assert left not in page, f"placeholder {left} not substituted"
+    out.write_text(page, encoding="utf-8")
+
+
 def main() -> int:
-    out = ROOT / "viz" / "year_strip.html"
-    build(ROOT / "viz" / "year_strip.template.html",
-          ROOT / "results" / "frames.json",
-          out)
-    print(f"wrote {out} ({out.stat().st_size} bytes)")
+    for name in PAGES:
+        template = ROOT / "viz" / f"{name}.template.html"
+        if not template.exists():
+            continue
+        out = ROOT / "viz" / f"{name}.html"
+        build(template, ROOT / "results" / "frames.json", out)
+        print(f"wrote {out} ({out.stat().st_size} bytes)")
+
+    slider_t = ROOT / "viz" / "slider.template.html"
+    slider_g = ROOT / "results" / "slider_grid.json"
+    if slider_t.exists() and slider_g.exists():
+        out = ROOT / "viz" / "slider.html"
+        build_slider(slider_t, slider_g, out)
+        print(f"wrote {out} ({out.stat().st_size} bytes)")
     return 0
 
 

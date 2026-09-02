@@ -178,3 +178,12 @@ def test_viz_offline():
     text = path.read_text(encoding="utf-8")
     for token in ["http", "src=", "@import"]:
         assert token not in text, token
+
+
+def test_every_viz_page_offline():
+    pages = sorted((ROOT / "viz").glob("*.html"))
+    assert pages, "no visualization pages found"
+    for path in pages:
+        text = path.read_text(encoding="utf-8")
+        for token in ["http", "src=", "@import"]:
+            assert token not in text, f"{path.name}: {token}"

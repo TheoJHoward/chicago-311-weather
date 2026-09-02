@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chicago 311 year ring</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --fg: #14171a;
+    --muted: #5b6470;
+    --panel: #ffffff;
+    --line: #d8dde3;
+    --pothole: #b45309;
+    --rodent: #6d28d9;
+    --basement: #0369a1;
+    --graffiti: #be185d;
+    --tree: #15803d;
+    --vehicle: #4b5563;
+  }
+  html[data-theme="dark"] {
+    --bg: #0e1013;
+    --fg: #f2f4f7;
+    --muted: #9aa4b2;
+    --panel: #171a1f;
+    --line: #2b3038;
+    --pothole: #f59e0b;
+    --rodent: #a78bfa;
+    --basement: #38bdf8;
+    --graffiti: #f472b6;
+    --tree: #4ade80;
+    --vehicle: #cbd5e1;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .wrap { padding: 26px 36px 18px 36px; }
+  h1 { font-size: 44px; line-height: 1.1; margin: 0 0 10px 0; font-weight: 700; }
+  .subtitle { font-size: 26px; color: var(--muted); margin: 0 0 16px 0; }
+  .counterbar { display: flex; align-items: baseline; gap: 28px; margin-bottom: 10px; flex-wrap: wrap; }
+  .counter { font-size: 54px; font-weight: 700; letter-spacing: -0.5px; }
+  .mode { font-size: 22px; color: var(--muted); }
+  .main { display: flex; gap: 30px; align-items: flex-start; }
+  .rings { display: flex; gap: 24px; flex: 1 1 auto; min-width: 0; }
+  .ringbox { flex: 1 1 0; text-align: center; }
+  .ringtitle { font-size: 26px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+  svg { width: 100%; height: auto; max-height: 560px; display: block; }
+  .monthtext { font-size: 19px; fill: var(--muted); }
+  .sector { stroke: var(--panel); stroke-width: 1; }
+  .hub { fill: var(--panel); stroke: var(--line); }
+  .legend {
+    flex: 0 0 auto; width: 320px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 6px; padding: 18px 20px;
+  }
+  .legend h2 { font-size: 22px; margin: 0 0 14px 0; color: var(--muted); font-weight: 600; }
+  .legrow { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .swatch { width: 32px; height: 32px; border-radius: 5px; flex: 0 0 32px; }
+  .leglabel { font-size: 23px; }
+  .keys { font-size: 19px; color: var(--muted); margin-top: 22px; line-height: 1.6; }
+  footer { font-size: 20px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+  .f-pothole { fill: var(--pothole); }
+  .f-rodent { fill: var(--rodent); }
+  .f-basement { fill: var(--basement); }
+  .f-graffiti { fill: var(--graffiti); }
+  .f-tree { fill: var(--tree); }
+  .f-vehicle { fill: var(--vehicle); }
+  .c-pothole { background: var(--pothole); }
+  .c-rodent { background: var(--rodent); }
+  .c-basement { background: var(--basement); }
+  .c-graffiti { background: var(--graffiti); }
+  .c-tree { background: var(--tree); }
+  .c-vehicle { background: var(--vehicle); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Can a model learn Chicago's year from the weather alone?</h1>
+  <p class="subtitle">The model has never been given a date.</p>
+
+  <div class="counterbar">
+    <div class="counter" id="counter">trees trained: 1</div>
+    <div class="mode" id="mode">shares of the six-category total</div>
+  </div>
+
+  <div class="main">
+    <div class="rings">
+      <div class="ringbox">
+        <div class="ringtitle">ACTUAL</div>
+        <svg viewBox="0 0 560 560" id="actualSvg"></svg>
+      </div>
+      <div class="ringbox">
+        <div class="ringtitle">MODEL</div>
+        <svg viewBox="0 0 560 560" id="modelSvg"></svg>
+      </div>
+    </div>
+
+    <div class="legend">
+      <h2>Complaint category</h2>
+      <div id="legend"></div>
+      <div class="keys">
+        space play or pause<br>
+        left and right arrows step<br>
+        c shares or counts<br>
+        r restart<br>
+        t light or dark
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    MODEL is a gradient-boosting model given only daily weather. Each frame adds trees. Held-out year, never seen in training. Each ring runs clockwise from the first month of the test year at the top.
+  </footer>
+</div>
+
+<script>
+"use strict";
+const FRAMES = __FRAMES_JSON__;
+
+const CATS = ["pothole", "rodent", "basement", "graffiti", "tree debris", "abandoned vehicle"];
+const FILL = {
+  "pothole": "f-pothole",
+  "rodent": "f-rodent",
+  "basement": "f-basement",
+  "graffiti": "f-graffiti",
+  "tree debris": "f-tree",
+  "abandoned vehicle": "f-vehicle"
+};
+const SWATCH = {
+  "pothole": "c-pothole",
+  "rodent": "c-rodent",
+  "basement": "c-basement",
+  "graffiti": "c-graffiti",
+  "tree debris": "c-tree",
+  "abandoned vehicle": "c-vehicle"
+};
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const CX = 280, CY = 280, R0 = 92, R1 = 232, RLABEL = 254;
+const GAP_DEG = 1.4;
+const FRAME_MS = 700;
+const HOLD_MS = 2000;
+
+let stageIdx = 0;
+let playing = false;
+let mode = "shares";
+let timer = null;
+
+function monthLabel(key) {
+  const y = key.slice(2, 4);
+  const m = parseInt(key.slice(5, 7), 10);
+  return MONTH_NAMES[m - 1] + " " + y;
+}
+
+function pt(cx, cy, r, deg) {
+  const a = (deg - 90) * Math.PI / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+
+function annulus(r0, r1, a0, a1) {
+  const [x0, y0] = pt(CX, CY, r1, a0);
+  const [x1, y1] = pt(CX, CY, r1, a1);
+  const [x2, y2] = pt(CX, CY, r0, a1);
+  const [x3, y3] = pt(CX, CY, r0, a0);
+  const big = (a1 - a0) > 180 ? 1 : 0;
+  return "M" + x0.toFixed(2) + " " + y0.toFixed(2)
+       + "A" + r1 + " " + r1 + " 0 " + big + " 1 " + x1.toFixed(2) + " " + y1.toFixed(2)
+       + "L" + x2.toFixed(2) + " " + y2.toFixed(2)
+       + "A" + r0 + " " + r0 + " 0 " + big + " 0 " + x3.toFixed(2) + " " + y3.toFixed(2)
+       + "Z";
+}
+
+function buildRing(svg) {
+  // Built as markup rather than through createElementNS: inside an HTML
+  // document the parser already places these elements in the SVG namespace,
+  // so the page needs no namespace identifier of any kind.
+  let html = '<circle cx="' + CX + '" cy="' + CY + '" r="' + (R0 - 2)
+           + '" class="hub"></circle>';
+  FRAMES.months.forEach(function (mk, i) {
+    CATS.forEach(function (c, j) {
+      html += '<path class="sector ' + FILL[c] + '" data-month="' + i
+            + '" data-cat="' + j + '"></path>';
+    });
+  });
+  FRAMES.months.forEach(function (mk, i) {
+    const [lx, ly] = pt(CX, CY, RLABEL, i * 30 + 15);
+    html += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 6).toFixed(1)
+          + '" text-anchor="middle" class="monthtext">'
+          + monthLabel(mk) + '</text>';
+  });
+  svg.innerHTML = html;
+
+  const paths = FRAMES.months.map(function () { return {}; });
+  svg.querySelectorAll("path.sector").forEach(function (p) {
+    paths[+p.dataset.month][CATS[+p.dataset.cat]] = p;
+  });
+  return paths;
+}
+
+const actualPaths = buildRing(document.getElementById("actualSvg"));
+const modelPaths = buildRing(document.getElementById("modelSvg"));
+
+(function buildLegend() {
+  const box = document.getElementById("legend");
+  CATS.forEach(function (c) {
+    const row = document.createElement("div");
+    row.className = "legrow";
+    const sw = document.createElement("div");
+    sw.className = "swatch " + SWATCH[c];
+    const lab = document.createElement("div");
+    lab.className = "leglabel";
+    lab.textContent = c;
+    row.appendChild(sw);
+    row.appendChild(lab);
+    box.appendChild(row);
+  });
+})();
+
+function seriesFor(which) {
+  return FRAMES.months.map(function (mk, i) {
+    const vals = {};
+    CATS.forEach(function (c) {
+      const block = FRAMES.categories[c];
+      vals[c] = which === "actual" ? block.actual[i] : block.model[stageIdx][i];
+    });
+    return vals;
+  });
+}
+
+function paint(paths, series) {
+  const totals = series.map(function (v) {
+    return CATS.reduce(function (a, c) { return a + v[c]; }, 0);
+  });
+  const rowMax = Math.max.apply(null, totals);
+  series.forEach(function (v, i) {
+    const total = totals[i];
+    const outer = (mode === "counts" && rowMax > 0)
+      ? R0 + (R1 - R0) * (total / rowMax)
+      : R1;
+    const a0 = i * 30 + GAP_DEG / 2;
+    const a1 = (i + 1) * 30 - GAP_DEG / 2;
+    let r = R0;
+    CATS.forEach(function (c) {
+      const span = total > 0 ? (outer - R0) * (v[c] / total) : 0;
+      paths[i][c].setAttribute("d", span > 0.01 ? annulus(r, r + span, a0, a1) : "");
+      r += span;
+    });
+  });
+}
+
+function render() {
+  document.getElementById("counter").textContent =
+    "trees trained: " + FRAMES.stages[stageIdx];
+  document.getElementById("mode").textContent = mode === "shares"
+    ? "shares of the six-category total"
+    : "counts, each ring scaled to its own largest month";
+  paint(actualPaths, seriesFor("actual"));
+  paint(modelPaths, seriesFor("model"));
+}
+
+function clearTimer() {
+  if (timer !== null) { clearTimeout(timer); timer = null; }
+}
+
+function schedule() {
+  clearTimer();
+  if (!playing) { return; }
+  const last = stageIdx === FRAMES.stages.length - 1;
+  timer = setTimeout(function () {
+    stageIdx = last ? 0 : stageIdx + 1;
+    render();
+    schedule();
+  }, last ? HOLD_MS : FRAME_MS);
+}
+
+function setPlaying(on) {
+  playing = on;
+  if (playing) { schedule(); } else { clearTimer(); }
+}
+
+function step(delta) {
+  setPlaying(false);
+  const n = FRAMES.stages.length;
+  stageIdx = (stageIdx + delta + n) % n;
+  render();
+}
+
+document.addEventListener("keydown", function (e) {
+  const k = e.key;
+  if (k === " " || k === "Spacebar") {
+    e.preventDefault();
+    setPlaying(!playing);
+  } else if (k === "ArrowRight") {
+    e.preventDefault();
+    step(1);
+  } else if (k === "ArrowLeft") {
+    e.preventDefault();
+    step(-1);
+  } else if (k === "r" || k === "R") {
+    stageIdx = 0;
+    render();
+    if (playing) { schedule(); }
+  } else if (k === "t" || k === "T") {
+    const root = document.documentElement;
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+  } else if (k === "c" || k === "C") {
+    mode = mode === "shares" ? "counts" : "shares";
+    render();
+  }
+});
+
+document.documentElement.dataset.theme = "light";
+render();
+</script>
+</body>
+</html>
