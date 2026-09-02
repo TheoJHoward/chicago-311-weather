@@ -36,6 +36,7 @@ MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 MINUS = "−"
 GRIDLINE_COUNTS = [10, 100, 1000]
+SMOOTH_WINDOW = 7
 
 # Classes whose height must come from the flex band, never a pixel value.
 FLEXIBLE = (".rows", ".bars", ".bar", ".mult", ".panel", ".p-plot", ".why-plot")
@@ -231,6 +232,55 @@ def test_overview_figures_match_sources(payload):
     assert abs(floor_y - typical_y) >= 0.08, (
         f"floor at {floor_y:.3f} and typical level at {typical_y:.3f} "
         f"are not visibly separated")
+
+    # --- the seven-day trailing mean drawn over the raw series ----------
+    window = payload["daily"]["smoothWindow"]
+    assert window == SMOOTH_WINDOW, window
+    expected_mean = []
+    for i in range(len(daily)):
+        chunk = daily[max(0, i - window + 1):i + 1]
+        expected_mean.append(sum(chunk) / len(chunk))
+    smoothed = payload["daily"]["smoothed"]
+    assert len(smoothed) == len(daily), (len(smoothed), len(daily))
+    for i, (got, want) in enumerate(zip(smoothed, expected_mean)):
+        assert got == pytest.approx(want, abs=0.01), (i, got, want)
+    assert payload["daily"]["smoothedMax"] == pytest.approx(
+        max(expected_mean), abs=0.01), payload["daily"]["smoothedMax"]
+    # the mean must flatten the series it smooths, not reproduce it
+    assert max(expected_mean) < max(daily), (max(expected_mean), max(daily))
+
+
+def test_overview_stat_lines_carry_both_analyses(page):
+    """Every panel's second line names the exploratory value, so the
+    comparison the narration makes is on the page rather than off it."""
+    stats = re.findall(r'<div class="p-stat">([^<]*)</div>', page)
+    assert len(stats) == len(PANEL_ORDER), stats
+    for s in stats:
+        assert "exploratory" in s or "both analyses" in s, s
+
+
+def test_overview_strip_draws_raw_and_mean(page):
+    """The flood strip carries two lines: each day, and the seven-day mean."""
+    assert 'class="why-raw"' in page
+    assert 'class="why-mean"' in page
+    assert "Light line is each day; dark line is the seven-day average." in page
+
+    rules = css_rules(page)
+    raw = [dict(declarations(d)) for sel, d in rules if sel == ".why-raw"]
+    mean = [dict(declarations(d)) for sel, d in rules if sel == ".why-mean"]
+    assert raw and "color-mix" in raw[0].get("stroke", ""), raw
+    assert mean and mean[0].get("stroke") == "var(--accent)", mean
+
+
+def test_overview_ymax_label_has_a_halo(page):
+    """A line can cross the y-maximum label, so the glyphs carry a
+    surface-coloured halo painted behind them."""
+    rules = css_rules(page)
+    ymax = [dict(declarations(d)) for sel, d in rules if sel == ".p-ymax"]
+    assert ymax, "no .p-ymax rule"
+    props = ymax[0]
+    assert props.get("paint-order") == "stroke fill", props
+    assert "var(--surface)" in props.get("-webkit-text-stroke", ""), props
 
 
 def test_overview_descriptor_states_the_scale(page):
