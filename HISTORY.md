@@ -230,3 +230,44 @@ searched the text would have passed whether or not the figure was on the page.
 
 No result, registration, model or number changed, and none of the four existing
 pages was modified. The five protected paths are untouched.
+
+## 2026-09-02 — Two rendering defects in the overview page were corrected
+
+A render of `viz/overview.html` at 1920×912 and 1600×760 found the page fitting
+with nothing clipped, no script errors, playback stopping at 300 trees, and the
+focus, counts and theme controls working. Two visual defects were found and are
+corrected here.
+
+**The panel headers collided.** The category name and the statistic shared one
+line, so in the basement panel the name and the words "weather beat the
+calendar" overprinted each other, and the two-word names in the tree debris and
+abandoned vehicle panels wrapped onto a second line and ran into the
+y-maximum label beneath. Both viewports, both themes. The header is now two
+lines: the swatch, the name and the verdict chip on the first, the statistic
+alone on the second, with the name set not to wrap. The panel headers are now
+written as markup by the build rather than assembled by the page's script, so
+the two lines are real nodes in the file and a test can check them without a
+browser.
+
+**The registered floor could not be seen.** The daily basement strip was drawn
+on a linear axis running to 3,653, the flood of 17 August 2025, so the
+registered model's floor of 111 complaints a day sat about three per cent above
+the baseline, indistinguishable from it and from a typical day of ten. The
+strip is now drawn on log1p, the scale every model in the study is scored on,
+with hairline gridlines at ten, one hundred and one thousand complaints a day —
+the only gridlines on the page. On that scale the floor sits at 57.5 per cent
+of the plot height and a typical day at 29.2 per cent. The floor line is drawn
+in the primary ink rather than the secondary so it reads against the gridlines,
+and its label has moved to the right end of its own line, where it no longer
+overprints the July data or the axis label.
+
+Two facts worth recording about that scale. The median of the daily series over
+the period drawn is exactly ten a day, so the typical level and the lowest
+gridline coincide. And the floor at 111 a day sits just above the hundred
+gridline, a little over one per cent of the plot height from it; the two are
+told apart by weight and colour rather than position.
+
+No figure, result, registered file or existing page changed. Every number the
+page prints is still computed by `viz/build_overview.py` from a committed file,
+and `tests/test_overview.py` still recomputes each one from the same sources
+without importing the build script.
