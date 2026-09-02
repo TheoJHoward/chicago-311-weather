@@ -120,6 +120,58 @@ def test_overview_composition(page):
                      style), "no reflow media query"
 
 
+CONTROLS = [
+    ("btnRestart", "Restart", "r", "restart"),
+    ("btnPrev", "◀ Step", "←", "prev"),
+    ("btnNext", "Step ▶", "→", "next"),
+    ("btnPlay", "Play", "space", "play"),
+    ("btnFocus", "Focus", "b", "focus"),
+    ("btnCounts", "Counts", "c", "counts"),
+    ("btnTheme", "Theme", "t", "theme"),
+]
+
+
+def test_overview_controls(page):
+    """Seven on-screen controls, in order, each naming its key, and each
+    bound to the same named action the key is bound to."""
+    found = re.findall(
+        r'<button type="button" class="btn" id="(\w+)" title="([^"]*)">(.*?)</button>',
+        page, re.S)
+    assert len(found) == len(CONTROLS), found
+
+    for (bid, label, key, action), (gid, gtitle, ginner) in zip(CONTROLS, found):
+        assert gid == bid, (gid, bid)
+        assert gtitle == key, (bid, gtitle, key)
+        text = re.sub(r"<[^>]+>", "", ginner).strip()
+        assert text == label, (bid, text, label)
+
+    # one handler per action, reached from the key map and from the buttons
+    keys = re.search(r"const KEYS = \{(.*?)\};", page, re.S)
+    btns = re.search(r"const BUTTONS = \{(.*?)\};", page, re.S)
+    assert keys and btns, "no KEYS or BUTTONS map"
+    for _, _, _, action in CONTROLS:
+        ref = f"ACTIONS.{action}"
+        assert keys.group(1).count(ref) == 1, (ref, "in KEYS")
+        assert btns.group(1).count(ref) == 1, (ref, "in BUTTONS")
+    # and the action itself is defined once
+    for _, _, _, action in CONTROLS:
+        assert re.search(rf"\n  {action}: ", page), action
+
+
+def test_overview_focus(page):
+    """In an embedded frame the document must be able to take the keyboard."""
+    assert 'tabindex="-1"' in page
+    assert "document.body.focus({ preventScroll: true })" in page
+    assert re.search(r'addEventListener\("pointerdown", grabFocus\)', page)
+
+    handler = re.search(r'addEventListener\("keydown", function \(e\) \{(.*?)\n\}\);',
+                        page, re.S)
+    assert handler, "no keydown handler"
+    assert "e.preventDefault()" in handler.group(1), handler.group(1)
+    # bound to the window so it fires wherever focus sits inside the page
+    assert 'window.addEventListener("keydown"' in page
+
+
 def test_overview_no_loop(page):
     """Playback must stop at the last stage, not wrap around."""
     tick = re.search(r"function tick\(\)\s*\{(.*?)\n\}", page, re.S)
