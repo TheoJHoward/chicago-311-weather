@@ -5,109 +5,125 @@
 <title>Chicago 311 weather slider</title>
 <style>
   :root {
-    --bg: #f7f8fa;
-    --fg: #14171a;
-    --muted: #5b6470;
-    --panel: #ffffff;
-    --line: #d8dde3;
-    --pothole: #b45309;
-    --rodent: #6d28d9;
-    --basement: #0369a1;
-    --graffiti: #be185d;
-    --tree: #15803d;
-    --vehicle: #4b5563;
+    --surface: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #7a7873;
+    --hairline: #e6e5e1;
+    --cat-1: #2a78d6;
+    --cat-2: #eb6834;
+    --cat-3: #1baf7a;
+    --cat-4: #eda100;
+    --cat-5: #e87ba4;
+    --cat-6: #008300;
   }
   html[data-theme="dark"] {
-    --bg: #0e1013;
-    --fg: #f2f4f7;
-    --muted: #9aa4b2;
-    --panel: #171a1f;
-    --line: #2b3038;
-    --pothole: #f59e0b;
-    --rodent: #a78bfa;
-    --basement: #38bdf8;
-    --graffiti: #f472b6;
-    --tree: #4ade80;
-    --vehicle: #cbd5e1;
+    --surface: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #94938c;
+    --hairline: #33322f;
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
   }
   * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0;
-    background: var(--bg); color: var(--fg);
+  html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+  body {
+    background: var(--surface);
+    color: var(--text-primary);
     font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { padding: 26px 36px 18px 36px; max-width: 1500px; }
-  h1 { font-size: 40px; line-height: 1.1; margin: 0 0 8px 0; font-weight: 700; }
-  .subtitle { font-size: 24px; color: var(--muted); margin: 0 0 22px 0; }
-  .main { display: flex; gap: 34px; align-items: flex-start; flex-wrap: wrap; }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 8px; padding: 22px 26px;
+  .page {
+    height: 100vh;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  .controls { flex: 1 1 460px; }
-  .ctl { margin-bottom: 26px; }
-  .ctl label { display: block; font-size: 24px; margin-bottom: 10px; }
-  .val { font-weight: 700; }
-  input[type="range"] { width: 100%; height: 34px; }
-  .snowrow { display: flex; align-items: center; gap: 14px; font-size: 24px; }
-  input[type="checkbox"] { width: 26px; height: 26px; }
-  .barbox { flex: 0 0 auto; text-align: center; }
+
+  h1 { font-size: 30px; font-weight: 600; line-height: 1.15; margin: 0; }
+  .subtitle {
+    font-size: 17px; line-height: 1.35; margin: 4px 0 14px 0;
+    color: var(--text-secondary);
+  }
+
+  .plot { flex: 1 1 auto; min-height: 0; display: flex; gap: 40px; align-items: stretch; }
+  .controls { flex: 1 1 420px; min-width: 0; }
+  .ctl { margin-bottom: 22px; }
+  .ctl label { display: block; font-size: 17px; margin-bottom: 8px; color: var(--text-secondary); }
+  .val { font-weight: 700; font-size: 22px; color: var(--text-primary); }
+  input[type="range"] { width: 100%; height: 28px; accent-color: var(--cat-1); }
+  .snowrow { display: flex; align-items: center; gap: 10px; font-size: 17px; color: var(--text-secondary); }
+  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--cat-1); }
+  .note { font-size: 15px; color: var(--text-muted); }
+
+  .barbox { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; }
   .bar {
-    width: 190px; height: 380px;
-    display: flex; flex-direction: column-reverse;
-    border: 1px solid var(--line); border-radius: 6px;
-    overflow: hidden; background: var(--panel);
+    width: 150px; flex: 1 1 auto; min-height: 0;
+    display: flex; flex-direction: column-reverse; gap: 2px;
   }
-  .seg { width: 100%; height: 0; transition: height 220ms ease; }
-  .barcap { font-size: 20px; color: var(--muted); margin-top: 10px; }
-  .table { flex: 1 1 380px; }
-  .table h2 { font-size: 22px; margin: 0 0 12px 0; color: var(--muted); font-weight: 600; }
-  .trow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 22px; }
-  .swatch { width: 28px; height: 28px; border-radius: 5px; flex: 0 0 28px; }
-  .tname { flex: 1 1 auto; }
+  .seg { width: 100%; }
+  .barcap { font-size: 14px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+  .table { flex: 1 1 360px; min-width: 0; }
+  .table h2 { font-size: 15px; letter-spacing: .09em; margin: 0 0 12px 0; color: var(--text-secondary); font-weight: 400; }
+  .trow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 17px; }
+  .swatch { width: 16px; height: 16px; border-radius: 3px; flex: 0 0 16px; }
+  .tname { flex: 1 1 auto; color: var(--text-secondary); }
   .tnum { font-variant-numeric: tabular-nums; font-weight: 700; }
-  .tshare { color: var(--muted); width: 90px; text-align: right; font-variant-numeric: tabular-nums; }
-  footer { font-size: 18px; color: var(--muted); margin-top: 26px; line-height: 1.6; }
-  footer b { color: var(--fg); }
-  .c-pothole { background: var(--pothole); }
-  .c-rodent { background: var(--rodent); }
-  .c-basement { background: var(--basement); }
-  .c-graffiti { background: var(--graffiti); }
-  .c-tree { background: var(--tree); }
-  .c-vehicle { background: var(--vehicle); }
+  .tshare { color: var(--text-muted); width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  footer {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--hairline);
+    font-size: 14px; color: var(--text-muted); line-height: 1.45;
+  }
+  footer b { color: var(--text-secondary); }
+
+  .c1 { background: var(--cat-1); }
+  .c2 { background: var(--cat-2); }
+  .c3 { background: var(--cat-3); }
+  .c4 { background: var(--cat-4); }
+  .c5 { background: var(--cat-5); }
+  .c6 { background: var(--cat-6); }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="page">
   <h1>A toy: turn the weather, watch the complaints</h1>
   <p class="subtitle">Six gradient-boosting models, each given only weather, asked what a day like this would bring.</p>
 
-  <div class="main">
-    <div class="panel controls">
+  <div class="plot">
+    <div class="controls">
       <div class="ctl">
-        <label>Highest temperature: <span class="val" id="tmaxVal">10 &deg;C</span></label>
+        <label>Highest temperature</label>
+        <div class="val" id="tmaxVal">10 &deg;C</div>
         <input type="range" id="tmax" min="0" max="65" step="1" value="35">
       </div>
       <div class="ctl">
-        <label>Precipitation: <span class="val" id="precipVal">0 mm</span></label>
+        <label>Precipitation</label>
+        <div class="val" id="precipVal">0 mm</div>
         <input type="range" id="precip" min="0" max="3" step="1" value="0">
       </div>
       <div class="ctl snowrow">
         <input type="checkbox" id="snow">
         <label for="snow" style="margin:0">Snowfall of 5 cm</label>
       </div>
-      <div class="ctl" style="margin-bottom:0">
-        <div class="barcap" id="ftNote">Freeze&ndash;thaw on this day: no</div>
-      </div>
+      <div class="note" id="ftNote">Freeze&ndash;thaw on this day: no</div>
     </div>
 
-    <div class="barbox panel">
+    <div class="barbox">
       <div class="bar" id="bar"></div>
       <div class="barcap">predicted shares</div>
     </div>
 
-    <div class="panel table">
-      <h2>Predicted complaints for one such day</h2>
+    <div class="table">
+      <h2>PREDICTED COMPLAINTS FOR ONE SUCH DAY</h2>
       <div id="rows"></div>
     </div>
   </div>
@@ -128,16 +144,12 @@
 "use strict";
 const GRID = __GRID_JSON__;
 
-const CATS = ["pothole", "rodent", "basement", "graffiti", "tree debris", "abandoned vehicle"];
-const CLASS = {
-  "pothole": "c-pothole",
-  "rodent": "c-rodent",
-  "basement": "c-basement",
-  "graffiti": "c-graffiti",
-  "tree debris": "c-tree",
-  "abandoned vehicle": "c-vehicle"
-};
-const BAR_PX = 380;
+/* Stack order is bottom to top and is the colourblind-safety mechanism:
+   adjacent bands were checked for separation under simulated colour-vision
+   deficiency. It is not reordered. */
+const CATS = ["pothole", "rodent", "basement", "graffiti", "tree debris",
+              "abandoned vehicle"];
+const CLASS = ["c1", "c2", "c3", "c4", "c5", "c6"];
 
 const bar = document.getElementById("bar");
 const rowsBox = document.getElementById("rows");
@@ -145,16 +157,16 @@ const segs = {};
 const nums = {};
 const shares = {};
 
-CATS.forEach(function (c) {
+CATS.forEach(function (c, i) {
   const s = document.createElement("div");
-  s.className = "seg " + CLASS[c];
+  s.className = "seg " + CLASS[i];
   bar.appendChild(s);
   segs[c] = s;
 
   const row = document.createElement("div");
   row.className = "trow";
   const sw = document.createElement("div");
-  sw.className = "swatch " + CLASS[c];
+  sw.className = "swatch " + CLASS[i];
   const name = document.createElement("div");
   name.className = "tname";
   name.textContent = c;
@@ -192,12 +204,27 @@ function render() {
     total += v;
   });
 
+  const avail = bar.clientHeight;
+  const visible = CATS.filter(function (c) { return vals[c] > 0 && total > 0; });
+  const body = Math.max(0, avail - 2 * Math.max(0, visible.length - 1));
+
   CATS.forEach(function (c) {
     const frac = total > 0 ? vals[c] / total : 0;
-    segs[c].style.height = (BAR_PX * frac).toFixed(2) + "px";
-    nums[c].textContent = Math.round(vals[c]);
+    if (frac <= 0) {
+      segs[c].style.display = "none";
+    } else {
+      segs[c].style.display = "block";
+      segs[c].style.height = (body * frac).toFixed(2) + "px";
+      segs[c].style.borderRadius = "0";
+    }
+    nums[c].textContent = Math.round(vals[c]).toLocaleString();
     shares[c].textContent = (100 * frac).toFixed(1) + "%";
   });
+  if (visible.length) {
+    segs[visible[0]].style.borderRadius = "0 0 4px 4px";
+    const top = segs[visible[visible.length - 1]];
+    top.style.borderRadius = (visible.length === 1) ? "4px" : "4px 4px 0 0";
+  }
 }
 
 ["tmax", "precip", "snow"].forEach(function (id) {
@@ -211,8 +238,11 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
+window.addEventListener("resize", render);
+
 document.documentElement.dataset.theme = "light";
 render();
+requestAnimationFrame(render);
 </script>
 </body>
 </html>
