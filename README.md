@@ -30,6 +30,7 @@ The two exploratory categories carried no prediction. Weather recovered most of 
 - `DEVIATIONS.md` — every departure from the registration.
 - `NOTES.md` — the data as found, including per-type coverage gaps.
 - `results/` — written by the runs: `results.md`, `results.json`, `frames.json`, `positive_controls.json`, and `slider_grid.json`.
+- `viz/overview.html` — the whole study on one screen; start here.
 - `viz/year_strip.html` — a self-contained offline page showing the WEATHER model's twelve test-year months filling in as trees are added, beside the actual months.
 - `viz/year_ring.html` — the same data as two radial rings, actual and model side by side.
 - `viz/slider.html` — a toy: turn the weather, watch the predicted mix of complaints. Every simplification it makes is stated on the page.

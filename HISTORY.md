@@ -203,3 +203,30 @@ markdown files and the same thirteen terms as before — found matches only
 inside this ledger, all of them in entries describing the colour scheme itself
 rather than describing the chart, and this sentence was the only one the
 reassignment made false.
+
+## 2026-09-02 — A single-screen overview page was added
+
+`viz/overview.html` carries the whole study on one screen: three rows of
+monthly stacked bars — what Chicago reported, the registered model, and the
+exploratory no-trend variant — with basement's mean share of the year beside
+each; a daily basement series showing the flood of 17 August 2025 two weeks
+before training ended and the flat level the registered model carried across
+the test year; and six per-category panels, each with its recovery, its
+prediction verdict, and the three monthly series drawn together.
+
+Every figure the page prints is computed at build time by
+`viz/build_overview.py` from a committed file — `results/frames.json`,
+`results/exploratory_frames.json`, `results/results.json`,
+`results/trend_diagnostic.json` and `data/study_daily.csv` — and embedded as
+data. The page formats no number of its own. `tests/test_overview.py`
+recomputes each of them from the same sources without importing the build
+script and compares against the page's parsed data block.
+
+That comparison is made against the parsed block rather than the page text on
+purpose. The embedded data is JSON, and JSON separates adjacent array values
+with a comma, so a search of the raw text for a formatted number such as
+"6,999" succeeds by accident whenever a 6 is followed by a 999. A test that
+searched the text would have passed whether or not the figure was on the page.
+
+No result, registration, model or number changed, and none of the four existing
+pages was modified. The five protected paths are untouched.
