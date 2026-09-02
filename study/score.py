@@ -22,9 +22,11 @@ from study.prereg_thresholds import (
 UNDEFINED = "UNDEFINED"
 
 
-def skills(mae: dict[str, float]) -> dict[str, float]:
-    base = mae["TREND"]
-    return {m: 1.0 - v / base for m, v in mae.items()}
+def skills(mae: dict[str, float], base: str = "TREND") -> dict[str, float]:
+    """Skill of each model against the floor model. The registered analysis
+    uses TREND; the exploratory variant passes its own floor."""
+    denom = mae[base]
+    return {m: 1.0 - v / denom for m, v in mae.items()}
 
 
 def recovery(skill: dict[str, float]):
@@ -35,21 +37,26 @@ def recovery(skill: dict[str, float]):
 
 
 def bootstrap(y_test: np.ndarray, preds: dict[str, np.ndarray],
-              month_index: np.ndarray) -> dict:
+              month_index: np.ndarray, base: str = "TREND") -> dict:
     """Monthly-block resampling of the test year.
 
     Draws twelve months with replacement, concatenates their days, and
-    recomputes MAE, skill and recovery on the resampled days.
+    recomputes MAE, skill and recovery on the resampled days. The model names
+    are taken from preds, so the exploratory variant reuses this unchanged.
     """
     months = np.unique(month_index)
     blocks = [np.flatnonzero(month_index == m) for m in months]
     abs_err = {m: np.abs(p - y_test) for m, p in preds.items()}
 
+    names = list(preds)
+    others = [m for m in names if m != base]
+
     rng = np.random.default_rng(BOOTSTRAP_SEED)
-    draws: dict[str, list[float]] = {k: [] for k in
-                                     ["mae_TREND", "mae_WEATHER", "mae_CLOCK",
-                                      "mae_BOTH", "skill_WEATHER",
-                                      "skill_CLOCK", "skill_BOTH"]}
+    draws: dict[str, list[float]] = {}
+    for m in names:
+        draws[f"mae_{m}"] = []
+    for m in others:
+        draws[f"skill_{m}"] = []
     rec_draws: list[float] = []
     rec_undefined = 0
 
@@ -57,10 +64,10 @@ def bootstrap(y_test: np.ndarray, preds: dict[str, np.ndarray],
         pick = rng.integers(0, len(blocks), size=len(blocks))
         idx = np.concatenate([blocks[i] for i in pick])
         mae = {m: float(abs_err[m][idx].mean()) for m in abs_err}
-        sk = skills(mae)
-        for m in ["TREND", "WEATHER", "CLOCK", "BOTH"]:
+        sk = skills(mae, base=base)
+        for m in names:
             draws[f"mae_{m}"].append(mae[m])
-        for m in ["WEATHER", "CLOCK", "BOTH"]:
+        for m in others:
             draws[f"skill_{m}"].append(sk[m])
         r = recovery(sk)
         if r is UNDEFINED or r == UNDEFINED:
