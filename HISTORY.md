@@ -354,3 +354,27 @@ bound to the window and cancels the default action for the space bar and the
 arrows, so driving the page no longer scrolls whatever is hosting it.
 
 No figure, result, registered file or other page changed.
+
+## 2026-09-02 — The repository is served as a site, and the composition fits every desktop frame
+
+**The stacked reflow was reaching too far.** It applied below a viewport width
+of one thousand pixels, which caught ordinary viewer frames and tablet widths
+and gave them a stacked, scrolling document instead of the page. The
+composition scales, so a frame narrower than the design does not need a
+different layout, only a smaller one. The reflow now applies below six hundred
+pixels and is for phones alone; everything from six hundred pixels upward gets
+the fitted composition. The breakpoint is stated once in the stylesheet and
+once in the script, and a test asserts the two agree.
+
+**The repository now publishes itself.** GitHub Pages serves the `main` branch
+from its root, so the page has an address that belongs to the repository and
+updates on every push:
+`https://theojhoward.github.io/chicago-311-weather/`. Two files support this. A
+`.nojekyll` file, empty, stops the site generator from processing the
+repository's markdown and ensures every file is served as it is committed. And
+an `index.html` at the root, which is a pointer and nothing else: a relative
+redirect to `viz/overview.html`, carrying no figure and no prose. Nothing about
+the page itself changed to make this work — it was already a single file with
+no external reference.
+
+No figure, result, registered file or other page changed.

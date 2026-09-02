@@ -4,6 +4,8 @@ Calendar-blind: can a model learn Chicago's seasonal 311 complaint calendar from
 
 Status: complete. The study was registered before any date-level outcome data was retrieved, the data were pulled, the positive controls passed, and the study was scored once against the registration. Data window 2019-01-01 through 2026-08-31 (2800 days). Held-out test year 2025-09-01 through 2026-08-31 (365 days); training 2019-01-08 through 2025-08-31 (2428 days). One of the four confirmatory predictions missed.
 
+Live page: https://theojhoward.github.io/chicago-311-weather/ — the whole study on one screen (viz/overview.html).
+
 ## What was asked
 
 Four models per category, all with identical fixed hyperparameters, differing only in what they are shown. Every model gets `t`, a trend covariate. WEATHER additionally gets daily weather, its lags and seven-day windows, and a freeze–thaw indicator — and no date, day of week, or day of year in any form. CLOCK gets day-of-year sine and cosine and day-of-week instead. BOTH gets everything. Skill is measured against TREND; recovery is skill(WEATHER) divided by skill(CLOCK).
