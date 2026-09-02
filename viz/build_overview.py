@@ -10,6 +10,7 @@ Sources, all read-only:
   results/frames.json               actual and registered-model monthly counts
   results/exploratory_frames.json   exploratory-model monthly counts
   results/results.json              registered recoveries and verdicts
+  results/exploratory_no_trend.json exploratory recoveries and skills
   results/trend_diagnostic.json     the registered TREND constant
   data/study_daily.csv              daily basement counts
 """
@@ -56,6 +57,7 @@ TRAIN_LAST_DAY = "training ends · 31 Aug 2025"
 # the only gridlines on the page.
 GRIDLINE_COUNTS = [10, 100, 1000]
 H15_MIN_SEPARATION = 0.08
+SMOOTH_WINDOW = 7
 
 MINUS = "−"               # typographic minus, for negative recoveries
 
@@ -77,6 +79,15 @@ def month_labels(keys: list[str]) -> list[str]:
         y, m = mk.split("-")
         name = MONTH_ABBR[int(m) - 1]
         out.append(f"{name} {y}" if (i == 0 or int(m) == 1) else name)
+    return out
+
+
+def trailing_mean(values: list[int], window: int = 7) -> list[float]:
+    """Mean over days d-6..d. The first six days use the window available."""
+    out = []
+    for i in range(len(values)):
+        chunk = values[max(0, i - window + 1):i + 1]
+        out.append(sum(chunk) / len(chunk))
     return out
 
 
@@ -131,6 +142,7 @@ def main() -> int:
     frames = load(RESULTS / "frames.json")
     expl = load(RESULTS / "exploratory_frames.json")
     results = load(RESULTS / "results.json")
+    expl_res = load(RESULTS / "exploratory_no_trend.json")
     diag = load(RESULTS / "trend_diagnostic.json")
 
     assert frames["stages"] == expl["stages"], "stage grids differ"
@@ -181,15 +193,28 @@ def main() -> int:
         ymax = max(max(act), max(max(r) for r in reg), max(max(r) for r in exp))
 
         rec = results["categories"][cat]["recovery"]
+        rec_x = expl_res["categories"][cat]["recovery"]
         if isinstance(rec, str):
-            # basement's recovery is UNDEFINED under the registration, so the
-            # panel states P3's own criterion instead of a number.
+            # This category's recovery is UNDEFINED under the registration, so
+            # the panel states P3's own criterion instead of a number. The
+            # phrase claims the criterion held in both analyses, so both are
+            # checked here rather than asserted in prose.
             sk = results["categories"][cat]["skill"]
+            sx = expl_res["categories"][cat]["skill"]
             assert sk["WEATHER"] > sk["CLOCK"], (
-                "basement stat text assumes P3's comparison holds")
-            stat = "weather beat the calendar"
+                f"H13: registered skill(WEATHER) is not above skill(CLOCK) "
+                f"for {cat}")
+            assert sx["WEATHER"] > 0 and sx["CLOCK"] > 0, (
+                f"H13: exploratory skills for {cat} are not both positive")
+            assert not isinstance(rec_x, str) and rec_x > 1.0, (
+                f"H13: exploratory recovery for {cat} is {rec_x!r}, so weather "
+                f"did not beat the calendar there")
+            stat = "weather beat the calendar in both analyses"
         else:
-            stat = f"recovery {fmt_recovery(rec)}"
+            assert not isinstance(rec_x, str), (
+                f"H13: exploratory recovery for {cat} is {rec_x!r}")
+            stat = (f"recovery {fmt_recovery(rec)} registered · "
+                    f"{fmt_recovery(rec_x)} exploratory")
 
         if cat in verdict_by_cat:
             code, verdict = verdict_by_cat[cat]
@@ -225,6 +250,10 @@ def main() -> int:
 
     floor = math.expm1(diag["basement"]["trend_constant_log1p"])
     floor_label = f"registered model's floor · {round(floor):,} a day, all year"
+
+    # The seven-day trailing mean is the line the eye follows; the raw series
+    # stays behind it as a tint. Computed here, never in the page.
+    smoothed = trailing_mean(daily, SMOOTH_WINDOW)
 
     log_max = math.log1p(max(daily))
 
@@ -268,6 +297,9 @@ def main() -> int:
         "daily": {
             "values": daily,
             "max": max(daily),
+            "smoothed": [round(v, 4) for v in smoothed],
+            "smoothedMax": max(smoothed),
+            "smoothWindow": SMOOTH_WINDOW,
             "scale": "log1p",
             "logMax": log_max,
             "gridlines": gridlines,
@@ -318,6 +350,9 @@ def main() -> int:
     for p in panels:
         print(f"  {p['cat']:19s} {p['stat']:28s} {p['chip']:15s} "
               f"y-max {p['ymaxLabel']:>7s}")
+    print()
+    print(f"raw daily maximum      {max(daily):,}")
+    print(f"{SMOOTH_WINDOW}-day mean maximum   {max(smoothed):.4f}")
     print()
     print(f"peak   {peak_label}          [data/study_daily.csv]")
     print(f"floor  {floor_label}   [results/trend_diagnostic.json]")

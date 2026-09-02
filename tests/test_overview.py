@@ -117,6 +117,7 @@ def test_overview_figures_match_sources(payload):
     frames = load("frames.json")
     expl = load("exploratory_frames.json")
     results = load("results.json")
+    expl_res = load("exploratory_no_trend.json")
     diag = load("trend_diagnostic.json")
 
     fc, ec = frames["categories"], expl["categories"]
@@ -152,14 +153,25 @@ def test_overview_figures_match_sources(payload):
     for cat in PANEL_ORDER:
         p = panels[cat]
         rec = results["categories"][cat]["recovery"]
+        rec_x = expl_res["categories"][cat]["recovery"]
         if isinstance(rec, str):
             assert rec == "UNDEFINED", rec
+            # the phrase claims the criterion held in both analyses
             sk = results["categories"][cat]["skill"]
+            sx = expl_res["categories"][cat]["skill"]
             assert sk["WEATHER"] > sk["CLOCK"], (
-                "basement's stat asserts P3's comparison")
-            assert p["stat"] == "weather beat the calendar", p["stat"]
+                "registered: weather did not beat the calendar")
+            assert sx["WEATHER"] > 0 and sx["CLOCK"] > 0, (
+                "exploratory skills are not both positive")
+            assert not isinstance(rec_x, str) and rec_x > 1.0, rec_x
+            assert p["stat"] == "weather beat the calendar in both analyses", \
+                p["stat"]
         else:
-            expected = "recovery " + f"{rec:.2f}".replace("-", MINUS)
+            expected = (
+                "recovery " + f"{rec:.2f}".replace("-", MINUS)
+                + " registered · " + f"{rec_x:.2f}".replace("-", MINUS)
+                + " exploratory"
+            )
             assert p["stat"] == expected, (cat, p["stat"], expected)
 
         if cat in verdicts:

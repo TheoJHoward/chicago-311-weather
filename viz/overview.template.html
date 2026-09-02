@@ -117,6 +117,10 @@
   .lbl-peak { font-size: 11px; font-weight: 600; color: var(--ink); }
   .lbl-floor { font-size: 11px; color: var(--ink-2); text-align: right; }
   .lbl-grid { font-size: 10.5px; color: var(--ink-3); }
+  /* the raw daily series recedes to a tint; the fallback keeps it light if
+     color-mix is unavailable rather than letting it default to black */
+  .why-raw { stroke: var(--hairline); stroke: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
+  .why-mean { stroke: var(--accent); }
   .axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 3px; }
 
   /* ---- panels ---- */
@@ -161,7 +165,17 @@
   .chip-none { opacity: .55; }
   .p-plot { position: relative; flex: 1 1 auto; min-height: 0; margin-top: 4px; }
   .p-plot svg { display: block; width: 100%; height: 100%; }
-  .p-ymax { position: absolute; left: 0; top: 0; font-size: 10.5px; color: var(--ink-3); }
+  /* The label sits over the plot, so a line can cross it. A surface-coloured
+     halo is painted behind the glyphs and the fill over it, which keeps the
+     text legible wherever it lands. The label is an HTML node rather than SVG
+     text, so the stroke is set the way HTML text takes one. */
+  .p-ymax {
+    position: absolute; left: 0; top: 0;
+    font-size: 10.5px; color: var(--ink-3);
+    paint-order: stroke fill;
+    -webkit-text-stroke: 3px var(--surface);
+    stroke-linejoin: round;
+  }
 
   /* ---- footer ---- */
   footer {
@@ -207,7 +221,7 @@
         <div class="why-grid">
           <div class="rw-lab">
             <div class="rw-title">Why the registered model is wrong</div>
-            <div class="rw-desc">Daily basement complaints. Training ended two weeks after the largest flood in the data; a tree model cannot extrapolate, so it carried that level across the year. Log scale, the same one the study scores on.</div>
+            <div class="rw-desc">Daily basement complaints. Training ended two weeks after the largest flood in the data; a tree model cannot extrapolate, so it carried that level across the year. Light line is each day; dark line is the seven-day average. Log scale, the same one the study scores on.</div>
           </div>
           <div>
             <div class="why-plot" id="whyPlot">
@@ -403,8 +417,13 @@ function paintWhy() {
   const X = function (i) { return (i / (n - 1)) * 1000; };
   const Y = function (val) { return 100 - (Math.log1p(val) / lm) * 100; };
 
-  let pts = [];
-  for (let i = 0; i < n; i++) { pts.push(X(i).toFixed(2) + "," + Y(v[i]).toFixed(2)); }
+  function points(series) {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      out.push(X(i).toFixed(2) + "," + Y(series[i]).toFixed(2));
+    }
+    return out.join(" ");
+  }
 
   let html = "";
   html += ns("line", { x1: 0, y1: 100, x2: 1000, y2: 100,
@@ -424,8 +443,12 @@ function paintWhy() {
                        x2: X(D.daily.trainIndex).toFixed(2), y2: 100,
                        stroke: "var(--ink-2)", "stroke-width": 1,
                        "vector-effect": "non-scaling-stroke" });
-  html += '<polyline points="' + pts.join(" ") + '" fill="none" '
-        + 'stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round" '
+  /* each day behind, the seven-day mean in front */
+  html += '<polyline class="why-raw" points="' + points(v) + '" fill="none" '
+        + 'stroke-width="1" stroke-linejoin="round" stroke-linecap="round" '
+        + 'vector-effect="non-scaling-stroke"></polyline>';
+  html += '<polyline class="why-mean" points="' + points(D.daily.smoothed)
+        + '" fill="none" stroke-width="1.6" stroke-linejoin="round" '
         + 'stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>';
   svg.innerHTML = html;
 
