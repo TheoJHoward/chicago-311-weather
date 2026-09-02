@@ -271,3 +271,44 @@ No figure, result, registered file or existing page changed. Every number the
 page prints is still computed by `viz/build_overview.py` from a committed file,
 and `tests/test_overview.py` still recomputes each one from the same sources
 without importing the build script.
+
+## 2026-09-02 — Three finishing changes to the overview page
+
+A render at 1920×912 found the page fitting with nothing clipped, no script
+errors, no overlapping text, the two-line panel headers correct, and the
+flood strip's floor line visible against its gridlines. Three things still
+worked against the page and are changed here.
+
+**The flood strip read as texture.** On the log scale, ordinary variation
+between one and thirty complaints a day fills the lower band with a jagged
+line, and the level a typical day sits at cannot be picked out of it. The raw
+daily series is now drawn at one pixel in a tint of the accent, and the
+seven-day trailing mean of the same series is drawn over it at 1.6 pixels in
+the full accent. The mean is the line the eye follows; the raw series stays
+visible behind it. The peak label remains attached to the raw maximum, because
+that is the day it names. The strip's description gains a sentence saying which
+line is which. The mean is computed by the build from `data/study_daily.csv`
+over days d−6 to d, with the first six days using the window available.
+
+**The per-panel maximum labels were being crossed by the lines.** In the
+graffiti and abandoned vehicle panels the actual series begins near its
+maximum and passes straight through the label at the top left. The label now
+carries a surface-coloured halo painted behind the glyphs, so it stays legible
+wherever a line lands. The label is an HTML node rather than SVG text, so the
+halo is set the way HTML text takes a stroke, with the paint order given
+explicitly.
+
+**The comparison the page exists to make was half off it.** Each panel showed
+one recovery, the registered one. The claim that a prediction held under the
+registered analysis and would have missed under the exploratory one could not
+be read without opening a second file. Every panel's second line now carries
+both values, read from `results/results.json` and
+`results/exploratory_no_trend.json`. For the one category whose registered
+recovery is undefined, the line states the criterion that decided it instead,
+and the build checks that the criterion holds in both analyses before writing
+that phrase rather than asserting it in prose.
+
+No figure, result or registered file changed. The page still prints nothing it
+did not compute: the two recoveries on each panel, the seven-day mean and its
+maximum are all derived at build time from committed files, and the tests
+recompute them from the same files without importing the build script.
