@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chicago 311 overview</title>
+<style>
+  :root {
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #7a7873;
+    --hairline: #e6e5e1;
+    --accent: #2a78d6;
+    --warn: #eb6834;
+  }
+  html[data-theme="dark"] {
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #94938c;
+    --hairline: #33322f;
+    --accent: #3987e5;
+    --warn: #d95926;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+  body {
+    background: var(--surface); color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    height: 100vh; padding: 26px 32px 20px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ---- header ---- */
+  .head { display: flex; align-items: flex-start; gap: 40px; }
+  .head-l { flex: 1 1 auto; min-width: 0; }
+  .eyebrow {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .10em;
+    color: var(--ink-3); margin: 0 0 6px 0;
+  }
+  h1 {
+    font-size: 27px; font-weight: 600; letter-spacing: -.012em;
+    line-height: 1.15; margin: 0;
+  }
+  .sub {
+    font-size: 14px; line-height: 1.45; color: var(--ink-2);
+    margin: 6px 0 0 0; max-width: 900px;
+  }
+  .meter { flex: 0 0 auto; min-width: 260px; }
+  .meter-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .meter-n { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .track {
+    height: 6px; border-radius: 3px; background: var(--hairline);
+    margin-top: 7px; overflow: hidden;
+  }
+  .fill { height: 100%; width: 0; background: var(--accent); transition: width 240ms ease; }
+  .keys { font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
+
+  /* ---- main ---- */
+  .main {
+    flex: 1 1 auto; min-height: 0; margin-top: 16px;
+    display: grid; grid-template-columns: 1fr 600px; gap: 36px;
+  }
+  .left { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .right { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+
+  /* ---- three rows ---- */
+  .rows {
+    flex: 1 1 auto; min-height: 0;
+    display: grid; grid-template-rows: 1fr 1fr 1fr; row-gap: 14px;
+  }
+  .rw {
+    min-height: 0;
+    display: grid; grid-template-columns: 150px 1fr 118px; column-gap: 18px;
+  }
+  .rw-lab { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+  .rw-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--ink);
+  }
+  .rw-desc { font-size: 12px; color: var(--ink-3); line-height: 1.35; margin-top: 4px; }
+  .rw-warn {
+    font-size: 12px; color: var(--ink-2); line-height: 1.35; margin-top: 6px;
+    border-left: 3px solid var(--warn); padding-left: 8px;
+  }
+  .bars { display: flex; min-width: 0; min-height: 0; align-items: flex-end; }
+  .slot { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; align-items: flex-end; height: 100%; }
+  .bar { display: flex; flex-direction: column-reverse; gap: 2px; width: 46%; max-width: 60px; }
+  .seg { width: 100%; }
+  .rw-ann { display: flex; flex-direction: column; justify-content: flex-end; }
+  .ann-n { font-size: 30px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+  .ann-u { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+  .ann-c { font-size: 12px; color: var(--ink-3); line-height: 1.3; margin-top: 5px; }
+
+  .mstrip { display: flex; margin: 7px 0 0 168px; padding-right: 136px; }
+  .mstrip div { flex: 1 1 0; min-width: 0; text-align: center; font-size: 12px; color: var(--ink-2); }
+
+  /* ---- why ---- */
+  .why { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+  .why-grid { display: grid; grid-template-columns: 150px 1fr; column-gap: 18px; }
+  .why-plot { position: relative; min-width: 0; }
+  .why-plot svg { display: block; width: 100%; height: 74px; }
+  .lbl { position: absolute; white-space: nowrap; pointer-events: none; }
+  .lbl-train { font-size: 11px; color: var(--ink-2); }
+  .lbl-peak { font-size: 11px; font-weight: 600; color: var(--ink); }
+  .lbl-floor { font-size: 11px; color: var(--ink-2); }
+  .axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 3px; }
+
+  /* ---- panels ---- */
+  .r-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .r-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--ink);
+  }
+  .r-note { font-size: 12px; color: var(--ink-3); }
+  .grid {
+    flex: 1 1 auto; min-height: 0;
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
+    column-gap: 22px; row-gap: 10px;
+  }
+  .panel {
+    min-width: 0; min-height: 0; padding: 6px 0 0 0;
+    border-top: 1px solid var(--hairline);
+    display: flex; flex-direction: column;
+  }
+  .p-head { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; gap: 8px; }
+  .p-name { display: flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
+  .p-sw { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 9px; }
+  .p-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+  .p-stat { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-2); white-space: nowrap;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; }
+  .dot-held { background: var(--ink-2); }
+  .dot-missed { border: 1.5px solid var(--ink-2); }
+  .chip-none { opacity: .55; }
+  .p-plot { position: relative; flex: 1 1 auto; min-height: 0; margin-top: 4px; }
+  .p-plot svg { display: block; width: 100%; height: 100%; }
+  .p-ymax { position: absolute; left: 0; top: 0; font-size: 10.5px; color: var(--ink-3); }
+
+  /* ---- footer ---- */
+  footer {
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hairline);
+    display: flex; justify-content: space-between; align-items: center; gap: 24px;
+    flex-wrap: wrap;
+  }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+  .leg-sw { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 12px; }
+  .lines { display: flex; gap: 18px; flex-wrap: wrap; }
+  .lk { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+  .lk i { display: block; width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; }
+  .lk-a { border-top-color: var(--ink); }
+  .lk-r { border-top-color: var(--accent); }
+  .lk-e { border-top-color: var(--accent); border-top-style: dashed; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <div class="head-l">
+      <p class="eyebrow">Chicago 311 &times; daily weather &middot; held-out year, Sep 2025 &ndash; Aug 2026</p>
+      <h1>Can a model learn Chicago's year from the weather alone?</h1>
+      <p class="sub">Three rows: what actually happened, the model I registered before seeing any data, and the fix I built after seeing the answer. Neither model was ever given a date.</p>
+    </div>
+    <div class="meter">
+      <div class="meter-top">
+        <span>training progress</span>
+        <span class="meter-n" id="meterN">1 / 300 trees</span>
+      </div>
+      <div class="track"><div class="fill" id="meterFill"></div></div>
+      <div class="keys">space play &middot; &larr; &rarr; step &middot; b focus &middot; c counts &middot; r restart &middot; t theme</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="left">
+      <div class="rows" id="rows"></div>
+      <div class="mstrip" id="mstrip"></div>
+
+      <div class="why">
+        <div class="why-grid">
+          <div class="rw-lab">
+            <div class="rw-title">Why the registered model is wrong</div>
+            <div class="rw-desc">Daily basement complaints. Training ended two weeks after the largest flood in the data; a tree model cannot extrapolate, so it carried that level across the year.</div>
+          </div>
+          <div>
+            <div class="why-plot" id="whyPlot">
+              <svg viewBox="0 0 1000 100" preserveAspectRatio="none" id="whySvg"></svg>
+            </div>
+            <div class="axis"><span id="axL"></span><span id="axR"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="r-head">
+        <div class="r-title">Per category &middot; monthly complaints</div>
+        <div class="r-note">recovery = share of the calendar's skill that weather alone recovers</div>
+      </div>
+      <div class="grid" id="panels"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="legend" id="legend"></div>
+    <div class="lines">
+      <span class="lk"><i class="lk-a"></i>actual</span>
+      <span class="lk"><i class="lk-r"></i>model &middot; registered</span>
+      <span class="lk"><i class="lk-e"></i>model &middot; exploratory</span>
+    </div>
+  </footer>
+</div>
+
+<script type="application/json" id="payload">__OVERVIEW_JSON__</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("payload").textContent);
+
+const N_STAGE = D.stages.length;
+const N_MONTH = D.months.length;
+const ROWS = [
+  { key: "actual", title: "Actual", desc: "What Chicago reported, by month.", warn: null },
+  { key: "registered", title: "Model · registered", desc: "Fixed before any data was seen. This is the scored one.", warn: null },
+  { key: "exploratory", title: "Model · exploratory", desc: "Same model, trend feature removed.", warn: "Built after seeing the results. Does not count." }
+];
+
+let stage = 0;
+let playing = false;
+let focus = true;      /* b */
+let counts = false;    /* c */
+let timer = null;
+
+function hues() {
+  return document.documentElement.dataset.theme === "dark" ? D.huesDark : D.huesLight;
+}
+/* In focus mode basement keeps its hue and everything else recedes to a tint.
+   Returns null when the segment should just take its full hue. */
+function tintFor(i) {
+  if (!focus || i === 0) { return null; }
+  return "color-mix(in srgb, " + hues()[i] + " 26%, var(--surface))";
+}
+function pct(v) {
+  const p = v * 100;
+  return (p < 10 ? p.toFixed(1) : String(Math.round(p))) + "";
+}
+
+/* ---- rows ---- */
+const rowEls = [];
+(function buildRows() {
+  const host = document.getElementById("rows");
+  ROWS.forEach(function (r) {
+    const rw = document.createElement("div");
+    rw.className = "rw";
+
+    const lab = document.createElement("div");
+    lab.className = "rw-lab";
+    const t = document.createElement("div");
+    t.className = "rw-title"; t.textContent = r.title;
+    const d = document.createElement("div");
+    d.className = "rw-desc"; d.textContent = r.desc;
+    lab.appendChild(t); lab.appendChild(d);
+    if (r.warn) {
+      const w = document.createElement("div");
+      w.className = "rw-warn"; w.textContent = r.warn;
+      lab.appendChild(w);
+    }
+
+    const bars = document.createElement("div");
+    bars.className = "bars";
+    const slots = [];
+    for (let i = 0; i < N_MONTH; i++) {
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      const segs = [];
+      for (let k = 0; k < D.cats.length; k++) {
+        const s = document.createElement("div");
+        s.className = "seg";
+        s.style.transition = "height 400ms ease";
+        bar.appendChild(s);
+        segs.push(s);
+      }
+      slot.appendChild(bar);
+      bars.appendChild(slot);
+      slots.push({ slot: slot, bar: bar, segs: segs });
+    }
+
+    const ann = document.createElement("div");
+    ann.className = "rw-ann";
+    const num = document.createElement("div");
+    num.className = "ann-n";
+    const cap = document.createElement("div");
+    cap.className = "ann-c";
+    cap.textContent = "of complaints are basement floods, mean over the year";
+    ann.appendChild(num); ann.appendChild(cap);
+
+    rw.appendChild(lab); rw.appendChild(bars); rw.appendChild(ann);
+    host.appendChild(rw);
+    rowEls.push({ slots: slots, num: num, key: r.key });
+  });
+})();
+
+(function buildStrip() {
+  const host = document.getElementById("mstrip");
+  D.monthLabels.forEach(function (m) {
+    const d = document.createElement("div");
+    d.textContent = m;
+    host.appendChild(d);
+  });
+})();
+
+function rowData(key) {
+  if (key === "actual") { return D.rows.actual; }
+  return D.rows[key][stage];
+}
+
+function paintRows() {
+  const H = hues();
+  rowEls.forEach(function (row) {
+    const data = rowData(row.key);
+    row.slots.forEach(function (entry, i) {
+      const vals = data[i];
+      const total = vals.reduce(function (a, b) { return a + b; }, 0);
+      const avail = entry.slot.clientHeight;
+      const vis = [];
+      vals.forEach(function (v, k) { if (v > 0 && total > 0) { vis.push(k); } });
+      const gaps = 2 * Math.max(0, vis.length - 1);
+      const full = counts ? avail * (total / D.countsMax) : avail;
+      const body = Math.max(0, full - gaps);
+
+      entry.segs.forEach(function (s, k) {
+        if (vis.indexOf(k) === -1) { s.style.display = "none"; return; }
+        s.style.display = "block";
+        s.style.height = (body * (vals[k] / total)).toFixed(2) + "px";
+        /* full hue first, then the tint; if color-mix is unsupported the
+           assignment is ignored and the hue stands rather than nothing */
+        s.style.background = H[k];
+        const tint = tintFor(k);
+        if (tint) { s.style.background = tint; }
+        s.style.borderRadius = "0";
+      });
+      if (vis.length) {
+        entry.segs[vis[vis.length - 1]].style.borderRadius = "3px 3px 0 0";
+      }
+    });
+
+    const share = row.key === "actual"
+      ? D.basementShare.actual
+      : D.basementShare[row.key][stage];
+    row.num.innerHTML = "";
+    row.num.appendChild(document.createTextNode(pct(share)));
+    const u = document.createElement("span");
+    u.className = "ann-u"; u.textContent = "%";
+    row.num.appendChild(u);
+  });
+}
+
+/* ---- why plot ---- */
+function ns(tag, attrs) {
+  /* built as markup so the page needs no namespace identifier */
+  return "<" + tag + " " + Object.keys(attrs).map(function (k) {
+    return k + '="' + attrs[k] + '"';
+  }).join(" ") + "></" + tag + ">";
+}
+
+function paintWhy() {
+  const svg = document.getElementById("whySvg");
+  const v = D.daily.values;
+  const n = v.length;
+  const mx = D.daily.max;
+  const X = function (i) { return (i / (n - 1)) * 1000; };
+  const Y = function (val) { return 100 - (val / mx) * 100; };
+
+  let pts = [];
+  for (let i = 0; i < n; i++) { pts.push(X(i).toFixed(2) + "," + Y(v[i]).toFixed(2)); }
+
+  let html = "";
+  html += ns("line", { x1: 0, y1: 100, x2: 1000, y2: 100,
+                       stroke: "var(--hairline)", "stroke-width": 1,
+                       "vector-effect": "non-scaling-stroke" });
+  html += ns("line", { x1: 0, y1: Y(D.daily.floor).toFixed(2), x2: 1000,
+                       y2: Y(D.daily.floor).toFixed(2), stroke: "var(--ink-2)",
+                       "stroke-width": 1, "stroke-dasharray": "5 3",
+                       "vector-effect": "non-scaling-stroke" });
+  html += ns("line", { x1: X(D.daily.trainIndex).toFixed(2), y1: 0,
+                       x2: X(D.daily.trainIndex).toFixed(2), y2: 100,
+                       stroke: "var(--ink-2)", "stroke-width": 1,
+                       "vector-effect": "non-scaling-stroke" });
+  html += '<polyline points="' + pts.join(" ") + '" fill="none" '
+        + 'stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round" '
+        + 'stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>';
+  svg.innerHTML = html;
+
+  const host = document.getElementById("whyPlot");
+  host.querySelectorAll(".lbl").forEach(function (e) { e.remove(); });
+
+  function label(cls, text, leftPct, topPx) {
+    const d = document.createElement("div");
+    d.className = "lbl " + cls;
+    d.textContent = text;
+    d.style.left = leftPct + "%";
+    d.style.top = topPx + "px";
+    host.appendChild(d);
+  }
+  /* both labels are anchored at their start and sit to the right of the mark
+     they describe, so neither can clip against the left edge */
+  label("lbl-peak", D.daily.peakLabel,
+        (D.daily.peakIndex / (n - 1)) * 100, 0);
+  label("lbl-train", D.daily.trainLabel,
+        (D.daily.trainIndex / (n - 1)) * 100, 17);
+  label("lbl-floor", D.daily.floorLabel, 0.5,
+        Math.min(58, (1 - D.daily.floor / mx) * 74 + 3));
+
+  host.querySelectorAll(".lbl").forEach(function (e) {
+    e.style.marginLeft = "4px";
+  });
+  document.getElementById("axL").textContent = D.daily.axisLeft;
+  document.getElementById("axR").textContent = D.daily.axisRight;
+}
+
+/* ---- panels ---- */
+const panelEls = [];
+(function buildPanels() {
+  const host = document.getElementById("panels");
+  D.panels.forEach(function (p) {
+    const el = document.createElement("div");
+    el.className = "panel";
+
+    const head = document.createElement("div");
+    head.className = "p-head";
+    const name = document.createElement("div");
+    name.className = "p-name";
+    const sw = document.createElement("span");
+    sw.className = "p-sw";
+    const nm = document.createElement("span");
+    nm.textContent = p.cat;
+    name.appendChild(sw); name.appendChild(nm);
+
+    const right = document.createElement("div");
+    right.className = "p-right";
+    const stat = document.createElement("span");
+    stat.className = "p-stat"; stat.textContent = p.stat;
+    const chip = document.createElement("span");
+    chip.className = "chip" + (p.chipKind === "none" ? " chip-none" : "");
+    const dot = document.createElement("span");
+    dot.className = "dot" + (p.chipKind === "held" ? " dot-held"
+                            : p.chipKind === "missed" ? " dot-missed" : " dot-held");
+    const ctext = document.createElement("span");
+    ctext.textContent = p.chip;
+    chip.appendChild(dot); chip.appendChild(ctext);
+    right.appendChild(stat); right.appendChild(chip);
+
+    head.appendChild(name); head.appendChild(right);
+
+    const plot = document.createElement("div");
+    plot.className = "p-plot";
+    const svg = document.createElement("div");
+    plot.innerHTML = '<svg viewBox="0 0 1000 100" preserveAspectRatio="none"></svg>';
+    const ymax = document.createElement("div");
+    ymax.className = "p-ymax";
+    ymax.textContent = p.ymaxLabel;
+    plot.appendChild(ymax);
+
+    el.appendChild(head); el.appendChild(plot);
+    host.appendChild(el);
+    panelEls.push({ p: p, sw: sw, svg: plot.querySelector("svg") });
+  });
+})();
+
+function polyline(series, mx, colour, dashed) {
+  const n = series.length;
+  const pts = series.map(function (v, i) {
+    return ((i / (n - 1)) * 1000).toFixed(2) + ","
+         + (100 - (v / mx) * 100).toFixed(2);
+  }).join(" ");
+  return '<polyline points="' + pts + '" fill="none" stroke="' + colour
+       + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"'
+       + (dashed ? ' stroke-dasharray="5 3"' : '')
+       + ' vector-effect="non-scaling-stroke"></polyline>';
+}
+
+function paintPanels() {
+  const H = hues();
+  panelEls.forEach(function (entry) {
+    const p = entry.p;
+    entry.sw.style.background = H[p.slot];
+    let html = ns("line", { x1: 0, y1: 100, x2: 1000, y2: 100,
+                            stroke: "var(--hairline)", "stroke-width": 1,
+                            "vector-effect": "non-scaling-stroke" });
+    html += polyline(p.actual, p.ymax, "var(--ink)", false);
+    html += polyline(p.registered[stage], p.ymax, H[p.slot], false);
+    html += polyline(p.exploratory[stage], p.ymax, H[p.slot], true);
+    entry.svg.innerHTML = html;
+  });
+}
+
+/* ---- legend ---- */
+(function buildLegend() {
+  const host = document.getElementById("legend");
+  D.cats.forEach(function (c, i) {
+    const el = document.createElement("span");
+    el.className = "leg";
+    const sw = document.createElement("span");
+    sw.className = "leg-sw";
+    const tx = document.createElement("span");
+    tx.textContent = c;
+    el.appendChild(sw); el.appendChild(tx);
+    host.appendChild(el);
+    el.dataset.slot = i;
+  });
+})();
+
+function paintLegend() {
+  const H = hues();
+  document.querySelectorAll("#legend .leg").forEach(function (el) {
+    el.querySelector(".leg-sw").style.background = H[+el.dataset.slot];
+  });
+}
+
+/* ---- meter ---- */
+function paintMeter() {
+  document.getElementById("meterN").textContent =
+    D.stages[stage] + " / " + D.stages[N_STAGE - 1] + " trees";
+  document.getElementById("meterFill").style.width =
+    ((stage / (N_STAGE - 1)) * 100).toFixed(1) + "%";
+}
+
+function render() {
+  paintRows();
+  paintPanels();
+  paintLegend();
+  paintMeter();
+}
+
+/* ---- playback: advances to the last stage and stops there ---- */
+function stopTimer() { if (timer !== null) { clearTimeout(timer); timer = null; } }
+function tick() {
+  stopTimer();
+  if (!playing) { return; }
+  if (stage >= N_STAGE - 1) { playing = false; return; }
+  timer = setTimeout(function () {
+    stage = stage + 1;
+    render();
+    tick();
+  }, 700);
+}
+function setPlaying(on) {
+  playing = on && stage < N_STAGE - 1;
+  if (playing) { tick(); } else { stopTimer(); }
+}
+function step(delta) {
+  setPlaying(false);
+  stage = Math.max(0, Math.min(N_STAGE - 1, stage + delta));
+  render();
+}
+
+document.addEventListener("keydown", function (e) {
+  const k = e.key;
+  if (k === " " || k === "Spacebar") { e.preventDefault(); setPlaying(!playing); }
+  else if (k === "ArrowRight") { e.preventDefault(); step(1); }
+  else if (k === "ArrowLeft") { e.preventDefault(); step(-1); }
+  else if (k === "r" || k === "R") { setPlaying(false); stage = 0; render(); }
+  else if (k === "b" || k === "B") { focus = !focus; render(); }
+  else if (k === "c" || k === "C") { counts = !counts; render(); }
+  else if (k === "t" || k === "T") {
+    const root = document.documentElement;
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    render(); paintWhy();
+  }
+});
+
+window.addEventListener("resize", function () { render(); paintWhy(); });
+
+document.documentElement.dataset.theme = "light";
+render();
+paintWhy();
+requestAnimationFrame(function () { render(); paintWhy(); });
+</script>
+</body>
+</html>
