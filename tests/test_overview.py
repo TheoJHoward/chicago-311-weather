@@ -18,6 +18,7 @@ import csv
 import json
 import math
 import re
+import statistics
 from datetime import date
 from pathlib import Path
 
@@ -34,6 +35,7 @@ PANEL_ORDER = ["pothole", "rodent", "basement", "graffiti", "tree debris",
 MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 MINUS = "−"
+GRIDLINE_COUNTS = [10, 100, 1000]
 
 # Classes whose height must come from the flex band, never a pixel value.
 FLEXIBLE = (".rows", ".bars", ".bar", ".mult", ".panel", ".p-plot", ".why-plot")
@@ -195,3 +197,56 @@ def test_overview_figures_match_sources(payload):
     assert payload["daily"]["floor"] == pytest.approx(floor)
     assert payload["daily"]["floorLabel"] == expected_floor, \
         payload["daily"]["floorLabel"]
+
+    # --- the flood strip's log scale and its gridlines -------------------
+    log_max = math.log1p(max(daily))
+    assert payload["daily"]["scale"] == "log1p", payload["daily"]["scale"]
+    assert payload["daily"]["logMax"] == pytest.approx(log_max)
+
+    grid = payload["daily"]["gridlines"]
+    assert [g["count"] for g in grid] == GRIDLINE_COUNTS, grid
+    for g in grid:
+        assert g["label"] == f"{g['count']:,}", g
+        assert g["y"] == pytest.approx(math.log1p(g["count"]) / log_max), g
+
+    # the floor must stay visibly clear of the typical daily level
+    typical = statistics.median(daily)
+    assert payload["daily"]["medianCount"] == pytest.approx(typical)
+    floor_y = math.log1p(floor) / log_max
+    typical_y = math.log1p(typical) / log_max
+    assert payload["daily"]["floorY"] == pytest.approx(floor_y)
+    assert payload["daily"]["typicalY"] == pytest.approx(typical_y)
+    assert abs(floor_y - typical_y) >= 0.08, (
+        f"floor at {floor_y:.3f} and typical level at {typical_y:.3f} "
+        f"are not visibly separated")
+
+
+def test_overview_descriptor_states_the_scale(page):
+    assert "Log scale, the same one the study scores on." in page
+
+
+def test_overview_panel_headers_two_lines(page):
+    """Each panel's name and stat are distinct nodes, in that order, and the
+    name does not wrap."""
+    panels = re.findall(
+        r'<div class="panel" data-cat="([^"]+)">(.*?)<div class="p-plot">',
+        page, re.S)
+    assert [c for c, _ in panels] == PANEL_ORDER, [c for c, _ in panels]
+
+    for cat, block in panels:
+        name = re.search(r'<span class="p-nm">([^<]*)</span>', block)
+        stat = re.search(r'<div class="p-stat">([^<]*)</div>', block)
+        assert name, f"{cat}: no name node"
+        assert stat, f"{cat}: no stat node"
+        assert name.group(1) == cat, (cat, name.group(1))
+        # distinct nodes, name first
+        assert name.start() < stat.start(), f"{cat}: stat precedes the name"
+        # the stat is not inside the header line the name sits on
+        head = re.search(r'<div class="p-head">(.*?)</div>\s*<div class="p-stat"',
+                         block, re.S)
+        assert head, f"{cat}: stat is not a sibling after the header line"
+        assert "p-stat" not in head.group(1), f"{cat}: stat is inside p-head"
+
+    rules = css_rules(page)
+    nm = [dict(declarations(d)) for sel, d in rules if sel == ".p-nm"]
+    assert nm and nm[0].get("white-space") == "nowrap", nm
