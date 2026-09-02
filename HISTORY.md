@@ -312,3 +312,45 @@ No figure, result or registered file changed. The page still prints nothing it
 did not compute: the two recoveries on each panel, the seven-day mean and its
 maximum are all derived at build time from committed files, and the tests
 recompute them from the same files without importing the build script.
+
+## 2026-09-02 — The overview page became driveable and frame-independent
+
+Shown inside a viewer frame rather than full screen, the page failed in two
+ways. It could not be driven: an embedded document does not hold the keyboard,
+so the arrow keys and the space bar went to the host page, and there was
+nothing on screen to click or tap instead. And it was not the same page: the
+layout had been built to fill one viewport, so at 1200 by 700 the bars fell to
+a third of their width and the row labels overprinted. A layout that fills the
+screen it is given does not shrink, it breaks.
+
+**The page is now a fixed composition.** Everything sits in a box of 1920 by
+912 pixels, laid out exactly as before. A stage the size of the viewport
+centres that box and scales it by whichever axis runs out first. At 1920 by 912
+the scale is one and the result is pixel-identical to the previous commit by
+construction: the same rules, dividing a 912-pixel box instead of a
+912-pixel viewport. Larger frames get a larger page rather than a capped one.
+The two viewport-relative lengths the stylesheet still held — the root's height
+and the flood plot's — became pixel values at that scale, and no viewport unit
+remains in the stylesheet.
+
+Below a viewport width of one thousand pixels the stage is not used at all.
+The composition becomes an ordinary document that stacks into one column and
+scrolls, with the rows and panels at fixed heights. A picture faithful to the
+original but shrunk to a phone's width would be unreadable, so at that size
+fidelity is dropped in favour of legibility.
+
+**There are now on-screen controls.** Seven buttons under the progress track —
+restart, step back, step forward, play or pause, and the three toggles for
+focus, counts and theme. Each carries its keyboard shortcut in its tooltip, and
+each is bound to the same named function the key is bound to, so there is one
+handler per action and two ways to reach it rather than two implementations.
+The play button reads Pause while running and returns to Play when the run
+stops at three hundred trees.
+
+**The page now takes the keyboard when it is touched.** The document body is
+focusable and takes focus on load and on any pointer press, so one click or tap
+inside an embedded frame hands the keyboard to the page. The key handler is
+bound to the window and cancels the default action for the space bar and the
+arrows, so driving the page no longer scrolls whatever is hosting it.
+
+No figure, result, registered file or other page changed.
