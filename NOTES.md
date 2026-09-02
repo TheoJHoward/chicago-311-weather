@@ -89,3 +89,19 @@ The absence claims above ("no gaps", "no paging", "no fallback", "no missing
 days", "0 rows discarded") were each checked over the full population of the
 pull: all 2800 days of the window and all 92 monthly requests. No other data
 problem was observed within that population.
+
+## Correction — 2026-09-02
+
+The sentence above that reads "Three of the five, including the largest, fall
+inside the test year" is false. It is left in place; this section supersedes it.
+
+The five largest basement days are 2025-08-17 (3,653), 2023-07-05 (2,004),
+2025-08-18 (1,725), 2025-08-19 (1,380) and 2023-07-03 (1,353). The test year
+begins 2025-09-01.
+
+**Zero of the five fall inside the test year.** Three of them — 2025-08-17,
+2025-08-18 and 2025-08-19 — fall in the last fifteen days of the training
+period, which ends 2025-08-31. The other two fall in July 2023, also training.
+
+The error was in the note only. No number in `results/` depended on it, and the
+split itself is asserted by `test_split_no_overlap`.
