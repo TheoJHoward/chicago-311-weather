@@ -12,6 +12,8 @@
     --hairline: #e6e5e1;
     --accent: #2a78d6;
     --warn: #eb6834;
+    --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a;
+    --cat-4: #eda100; --cat-5: #e87ba4; --cat-6: #008300;
   }
   html[data-theme="dark"] {
     --surface: #1a1a19;
@@ -21,6 +23,8 @@
     --hairline: #33322f;
     --accent: #3987e5;
     --warn: #d95926;
+    --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70;
+    --cat-4: #c98500; --cat-5: #d55181; --cat-6: #008300;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
@@ -111,7 +115,8 @@
   .lbl { position: absolute; white-space: nowrap; pointer-events: none; }
   .lbl-train { font-size: 11px; color: var(--ink-2); }
   .lbl-peak { font-size: 11px; font-weight: 600; color: var(--ink); }
-  .lbl-floor { font-size: 11px; color: var(--ink-2); }
+  .lbl-floor { font-size: 11px; color: var(--ink-2); text-align: right; }
+  .lbl-grid { font-size: 10.5px; color: var(--ink-3); }
   .axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 3px; }
 
   /* ---- panels ---- */
@@ -132,10 +137,19 @@
     display: flex; flex-direction: column;
   }
   .p-head { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; gap: 8px; }
-  .p-name { display: flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
+  .p-name { display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+  .p-nm { white-space: nowrap; }
   .p-sw { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 9px; }
-  .p-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-  .p-stat { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .p-stat {
+    font-size: 12px; color: var(--ink-2);
+    font-variant-numeric: tabular-nums; margin-top: 2px;
+  }
+  .sw-1 { background: var(--cat-1); }
+  .sw-2 { background: var(--cat-2); }
+  .sw-3 { background: var(--cat-3); }
+  .sw-4 { background: var(--cat-4); }
+  .sw-5 { background: var(--cat-5); }
+  .sw-6 { background: var(--cat-6); }
   .chip {
     display: inline-flex; align-items: center; gap: 5px;
     font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
@@ -193,7 +207,7 @@
         <div class="why-grid">
           <div class="rw-lab">
             <div class="rw-title">Why the registered model is wrong</div>
-            <div class="rw-desc">Daily basement complaints. Training ended two weeks after the largest flood in the data; a tree model cannot extrapolate, so it carried that level across the year.</div>
+            <div class="rw-desc">Daily basement complaints. Training ended two weeks after the largest flood in the data; a tree model cannot extrapolate, so it carried that level across the year. Log scale, the same one the study scores on.</div>
           </div>
           <div>
             <div class="why-plot" id="whyPlot">
@@ -210,7 +224,9 @@
         <div class="r-title">Per category &middot; monthly complaints</div>
         <div class="r-note">recovery = share of the calendar's skill that weather alone recovers</div>
       </div>
-      <div class="grid" id="panels"></div>
+      <div class="grid" id="panels">
+__PANELS_HTML__
+      </div>
     </div>
   </div>
 
@@ -381,9 +397,11 @@ function paintWhy() {
   const svg = document.getElementById("whySvg");
   const v = D.daily.values;
   const n = v.length;
-  const mx = D.daily.max;
+  /* log1p, the scale the study scores on. On a linear axis the registered
+     floor sits a few per cent above the baseline and cannot be told from it. */
+  const lm = D.daily.logMax;
   const X = function (i) { return (i / (n - 1)) * 1000; };
-  const Y = function (val) { return 100 - (val / mx) * 100; };
+  const Y = function (val) { return 100 - (Math.log1p(val) / lm) * 100; };
 
   let pts = [];
   for (let i = 0; i < n; i++) { pts.push(X(i).toFixed(2) + "," + Y(v[i]).toFixed(2)); }
@@ -392,8 +410,14 @@ function paintWhy() {
   html += ns("line", { x1: 0, y1: 100, x2: 1000, y2: 100,
                        stroke: "var(--hairline)", "stroke-width": 1,
                        "vector-effect": "non-scaling-stroke" });
-  html += ns("line", { x1: 0, y1: Y(D.daily.floor).toFixed(2), x2: 1000,
-                       y2: Y(D.daily.floor).toFixed(2), stroke: "var(--ink-2)",
+  D.daily.gridlines.forEach(function (g) {
+    const gy = (100 - g.y * 100).toFixed(2);
+    html += ns("line", { x1: 0, y1: gy, x2: 1000, y2: gy,
+                         stroke: "var(--hairline)", "stroke-width": 1,
+                         "vector-effect": "non-scaling-stroke" });
+  });
+  const fy = (100 - D.daily.floorY * 100).toFixed(2);
+  html += ns("line", { x1: 0, y1: fy, x2: 1000, y2: fy, stroke: "var(--ink)",
                        "stroke-width": 1, "stroke-dasharray": "5 3",
                        "vector-effect": "non-scaling-stroke" });
   html += ns("line", { x1: X(D.daily.trainIndex).toFixed(2), y1: 0,
@@ -407,78 +431,49 @@ function paintWhy() {
 
   const host = document.getElementById("whyPlot");
   host.querySelectorAll(".lbl").forEach(function (e) { e.remove(); });
+  const H = svg.clientHeight || 74;
 
-  function label(cls, text, leftPct, topPx) {
+  function label(cls, text, css) {
     const d = document.createElement("div");
     d.className = "lbl " + cls;
     d.textContent = text;
-    d.style.left = leftPct + "%";
-    d.style.top = topPx + "px";
+    Object.keys(css).forEach(function (k) { d.style[k] = css[k]; });
     host.appendChild(d);
   }
-  /* both labels are anchored at their start and sit to the right of the mark
+
+  D.daily.gridlines.forEach(function (g) {
+    label("lbl-grid", g.label,
+          { left: "0px", top: Math.max(0, (1 - g.y) * H - 12) + "px" });
+  });
+  /* these two are anchored at their start and sit to the right of the mark
      they describe, so neither can clip against the left edge */
   label("lbl-peak", D.daily.peakLabel,
-        (D.daily.peakIndex / (n - 1)) * 100, 0);
+        { left: ((D.daily.peakIndex / (n - 1)) * 100) + "%", top: "0px",
+          marginLeft: "4px" });
   label("lbl-train", D.daily.trainLabel,
-        (D.daily.trainIndex / (n - 1)) * 100, 17);
-  const plotH = svg.clientHeight || 74;
-  label("lbl-floor", D.daily.floorLabel, 0.5,
-        Math.min(plotH - 16, (1 - D.daily.floor / mx) * plotH + 3));
+        { left: ((D.daily.trainIndex / (n - 1)) * 100) + "%", top: "15px",
+          marginLeft: "4px" });
+  /* the floor's label sits at the right end of its own line, just above it */
+  label("lbl-floor", D.daily.floorLabel,
+        { right: "0px",
+          top: Math.max(0, (1 - D.daily.floorY) * H - 15) + "px" });
 
-  host.querySelectorAll(".lbl").forEach(function (e) {
-    e.style.marginLeft = "4px";
-  });
   document.getElementById("axL").textContent = D.daily.axisLeft;
   document.getElementById("axR").textContent = D.daily.axisRight;
 }
 
 /* ---- panels ---- */
+/* The panel headers are static markup written by the build, so the two header
+   lines are real nodes in the file. The script only binds to them and draws
+   the three series; the swatch takes its colour from a class. */
 const panelEls = [];
-(function buildPanels() {
-  const host = document.getElementById("panels");
-  D.panels.forEach(function (p) {
-    const el = document.createElement("div");
-    el.className = "panel";
-
-    const head = document.createElement("div");
-    head.className = "p-head";
-    const name = document.createElement("div");
-    name.className = "p-name";
-    const sw = document.createElement("span");
-    sw.className = "p-sw";
-    const nm = document.createElement("span");
-    nm.textContent = p.cat;
-    name.appendChild(sw); name.appendChild(nm);
-
-    const right = document.createElement("div");
-    right.className = "p-right";
-    const stat = document.createElement("span");
-    stat.className = "p-stat"; stat.textContent = p.stat;
-    const chip = document.createElement("span");
-    chip.className = "chip" + (p.chipKind === "none" ? " chip-none" : "");
-    const dot = document.createElement("span");
-    dot.className = "dot" + (p.chipKind === "held" ? " dot-held"
-                            : p.chipKind === "missed" ? " dot-missed" : " dot-held");
-    const ctext = document.createElement("span");
-    ctext.textContent = p.chip;
-    chip.appendChild(dot); chip.appendChild(ctext);
-    right.appendChild(stat); right.appendChild(chip);
-
-    head.appendChild(name); head.appendChild(right);
-
-    const plot = document.createElement("div");
-    plot.className = "p-plot";
-    const svg = document.createElement("div");
-    plot.innerHTML = '<svg viewBox="0 0 1000 100" preserveAspectRatio="none"></svg>';
-    const ymax = document.createElement("div");
-    ymax.className = "p-ymax";
-    ymax.textContent = p.ymaxLabel;
-    plot.appendChild(ymax);
-
-    el.appendChild(head); el.appendChild(plot);
-    host.appendChild(el);
-    panelEls.push({ p: p, sw: sw, svg: plot.querySelector("svg") });
+(function bindPanels() {
+  const byCat = {};
+  D.panels.forEach(function (p) { byCat[p.cat] = p; });
+  document.querySelectorAll("#panels .panel").forEach(function (el) {
+    const p = byCat[el.dataset.cat];
+    if (!p) { return; }
+    panelEls.push({ p: p, svg: el.querySelector("svg") });
   });
 })();
 
@@ -498,7 +493,6 @@ function paintPanels() {
   const H = hues();
   panelEls.forEach(function (entry) {
     const p = entry.p;
-    entry.sw.style.background = H[p.slot];
     let html = ns("line", { x1: 0, y1: 100, x2: 1000, y2: 100,
                             stroke: "var(--hairline)", "stroke-width": 1,
                             "vector-effect": "non-scaling-stroke" });

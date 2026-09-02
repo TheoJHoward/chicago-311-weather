@@ -1,15 +1,15 @@
 """Assemble the single-screen overview page from the committed results.
 
 Every figure the page prints is computed here from a file in the repository and
-embedded as data. Nothing on the page is typed by hand: the recoveries, the
-verdict chips, the basement shares, the peak day, the registered floor and the
-per-panel maxima are all derived below and injected into the template.
+embedded as data, or emitted here as markup. Nothing on the page is typed by
+hand: the recoveries, the verdict chips, the basement shares, the peak day, the
+registered floor, the gridline labels and the per-panel maxima are all derived
+below and injected into the template.
 
 Sources, all read-only:
   results/frames.json               actual and registered-model monthly counts
   results/exploratory_frames.json   exploratory-model monthly counts
   results/results.json              registered recoveries and verdicts
-  results/exploratory_no_trend.json exploratory recoveries
   results/trend_diagnostic.json     the registered TREND constant
   data/study_daily.csv              daily basement counts
 """
@@ -17,8 +17,10 @@ Sources, all read-only:
 from __future__ import annotations
 
 import csv
+import html
 import json
 import math
+import statistics
 import sys
 from datetime import date
 from pathlib import Path
@@ -29,7 +31,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
-PLACEHOLDER = "__OVERVIEW_JSON__"
+DATA_PLACEHOLDER = "__OVERVIEW_JSON__"
+PANELS_PLACEHOLDER = "__PANELS_HTML__"
 FORBIDDEN = ["http", "src=", "@import"]
 
 # Stack order, bottom to top, against the validated colour slots.
@@ -49,6 +52,11 @@ DAILY_TO = "2026-08-31"
 TRAIN_ENDS = "2025-09-01"      # the split boundary; the rule is drawn here
 TRAIN_LAST_DAY = "training ends · 31 Aug 2025"
 
+# The flood strip is drawn on log1p, the scale the study scores on. These are
+# the only gridlines on the page.
+GRIDLINE_COUNTS = [10, 100, 1000]
+H15_MIN_SEPARATION = 0.08
+
 MINUS = "−"               # typographic minus, for negative recoveries
 
 
@@ -60,8 +68,7 @@ def fmt_recovery(value) -> str:
     """Two decimals, with a typographic minus for negatives."""
     if isinstance(value, str):
         raise ValueError(f"recovery is {value!r}; caller must handle it")
-    text = f"{value:.2f}"
-    return text.replace("-", MINUS)
+    return f"{value:.2f}".replace("-", MINUS)
 
 
 def month_labels(keys: list[str]) -> list[str]:
@@ -71,10 +78,6 @@ def month_labels(keys: list[str]) -> list[str]:
         name = MONTH_ABBR[int(m) - 1]
         out.append(f"{name} {y}" if (i == 0 or int(m) == 1) else name)
     return out
-
-
-def totals_by_month(block: dict, which, n_months: int) -> list[float]:
-    return [sum(which(block[c])[i] for c in CATS) for i in range(n_months)]
 
 
 def basement_mean_share(values: list[list[float]]) -> float:
@@ -92,18 +95,49 @@ def stack(block: dict, pick) -> list[list[float]]:
     return [[pick(block[c])[i] for c in CATS] for i in range(n)]
 
 
+def panel_markup(panels: list[dict]) -> str:
+    """The six panel headers as static markup.
+
+    Emitted here rather than built by the page's script so that the two header
+    lines are real nodes in the file and can be asserted without a browser.
+    """
+    out = []
+    for p in panels:
+        dot = "dot-held" if p["chipKind"] == "held" else (
+            "dot-missed" if p["chipKind"] == "missed" else "dot-held")
+        chip_cls = "chip chip-none" if p["chipKind"] == "none" else "chip"
+        out.append(
+            f'      <div class="panel" data-cat="{html.escape(p["cat"])}">\n'
+            f'        <div class="p-head">\n'
+            f'          <div class="p-name">'
+            f'<span class="p-sw sw-{p["slot"] + 1}"></span>'
+            f'<span class="p-nm">{html.escape(p["cat"])}</span></div>\n'
+            f'          <span class="{chip_cls}">'
+            f'<span class="dot {dot}"></span>'
+            f'<span>{html.escape(p["chip"])}</span></span>\n'
+            f'        </div>\n'
+            f'        <div class="p-stat">{html.escape(p["stat"])}</div>\n'
+            f'        <div class="p-plot">\n'
+            f'          <svg viewBox="0 0 1000 100" preserveAspectRatio="none">'
+            f'</svg>\n'
+            f'          <div class="p-ymax">{html.escape(p["ymaxLabel"])}</div>\n'
+            f'        </div>\n'
+            f'      </div>'
+        )
+    return "\n".join(out)
+
+
 def main() -> int:
     frames = load(RESULTS / "frames.json")
     expl = load(RESULTS / "exploratory_frames.json")
     results = load(RESULTS / "results.json")
-    expl_res = load(RESULTS / "exploratory_no_trend.json")
     diag = load(RESULTS / "trend_diagnostic.json")
 
     assert frames["stages"] == expl["stages"], "stage grids differ"
     assert frames["months"] == expl["months"], "month grids differ"
     stages = frames["stages"]
     months = frames["months"]
-    n_stage, n_month = len(stages), len(months)
+    n_stage = len(stages)
 
     fc, ec = frames["categories"], expl["categories"]
 
@@ -176,7 +210,7 @@ def main() -> int:
             "chipKind": kind,
         })
 
-    # ---- the daily basement series --------------------------------------
+    # ---- the daily basement series, on log1p ----------------------------
     rows = [r for r in csv.DictReader(
         (ROOT / "data" / "study_daily.csv").open(encoding="utf-8"))
         if DAILY_FROM <= r["day"] <= DAILY_TO]
@@ -191,6 +225,24 @@ def main() -> int:
 
     floor = math.expm1(diag["basement"]["trend_constant_log1p"])
     floor_label = f"registered model's floor · {round(floor):,} a day, all year"
+
+    log_max = math.log1p(max(daily))
+
+    def yfrac(v: float) -> float:
+        return math.log1p(v) / log_max
+
+    median_count = statistics.median(daily)
+    floor_y, typical_y = yfrac(floor), yfrac(median_count)
+    separation = abs(floor_y - typical_y)
+    assert separation >= H15_MIN_SEPARATION, (
+        f"H15: on the log scale the registered floor sits at "
+        f"{floor_y:.3f} of plot height and the typical daily level at "
+        f"{typical_y:.3f}; separation {separation:.3f} is below "
+        f"{H15_MIN_SEPARATION}"
+    )
+
+    gridlines = [{"count": c, "label": f"{c:,}", "y": yfrac(c)}
+                 for c in GRIDLINE_COUNTS]
 
     assert TRAIN_ENDS in days, f"{TRAIN_ENDS} not in the daily range"
     train_i = days.index(TRAIN_ENDS)
@@ -216,6 +268,13 @@ def main() -> int:
         "daily": {
             "values": daily,
             "max": max(daily),
+            "scale": "log1p",
+            "logMax": log_max,
+            "gridlines": gridlines,
+            "medianCount": median_count,
+            "floorY": floor_y,
+            "typicalY": typical_y,
+            "separation": separation,
             "peakIndex": peak_i,
             "peakLabel": peak_label,
             "trainIndex": train_i,
@@ -229,13 +288,16 @@ def main() -> int:
 
     template = ROOT / "viz" / "overview.template.html"
     text = template.read_text(encoding="utf-8")
-    assert text.count(PLACEHOLDER) == 1, "template needs exactly one placeholder"
+    for ph in (DATA_PLACEHOLDER, PANELS_PLACEHOLDER):
+        assert text.count(ph) == 1, f"template needs exactly one {ph}"
+
     # ensure_ascii=False so the printed strings appear in the page as the
     # characters they are, and can be matched against the sources by a test.
     page = text.replace(
-        PLACEHOLDER,
+        DATA_PLACEHOLDER,
         json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
-    )
+    ).replace(PANELS_PLACEHOLDER, panel_markup(panels))
+
     for token in FORBIDDEN:
         assert token not in page, f"page is not offline: contains {token!r}"
 
@@ -245,7 +307,8 @@ def main() -> int:
     print(f"wrote {out} ({out.stat().st_size} bytes)")
     print()
     print("basement mean share, final stage:")
-    print(f"  actual       {shares['labels']['actual']}%     [results/frames.json]")
+    print(f"  actual       {shares['labels']['actual']}%     "
+          f"[results/frames.json]")
     print(f"  registered   {shares['labels']['registered'][-1]}%      "
           f"[results/frames.json]")
     print(f"  exploratory  {shares['labels']['exploratory'][-1]}%      "
@@ -258,7 +321,15 @@ def main() -> int:
     print()
     print(f"peak   {peak_label}          [data/study_daily.csv]")
     print(f"floor  {floor_label}   [results/trend_diagnostic.json]")
-    print(f"counts-mode maximum: {counts_max:,.0f}")
+    print()
+    print("flood strip, log1p scale, fractions of plot height:")
+    for g in gridlines:
+        print(f"  gridline {g['label']:>5s}  y = {g['y']:.4f}")
+    print(f"  floor          y = {floor_y:.4f}")
+    print(f"  typical day    y = {typical_y:.4f} "
+          f"(median {median_count:g} a day)")
+    print(f"  separation       = {separation:.4f} "
+          f"(H15 threshold {H15_MIN_SEPARATION})")
     return 0
 
 
