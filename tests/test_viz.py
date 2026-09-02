@@ -80,9 +80,18 @@ def test_pages_declare_viewport_fit(name):
     )
 
 
+EXPECTED_PAGES = {
+    "overview.html",
+    "slider.html",
+    "year_ring.html",
+    "year_strip.html",
+    "year_strip_exploratory.html",
+}
+
+
 def test_no_external_references():
     pages = built_pages()
-    assert len(pages) == 4, [p.name for p in pages]
+    assert {p.name for p in pages} == EXPECTED_PAGES, [p.name for p in pages]
     for path in pages:
         text = path.read_text(encoding="utf-8")
         for token in FORBIDDEN_TOKENS:

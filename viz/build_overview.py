@@ -118,10 +118,22 @@ def main() -> int:
         + [sum(r) for s in exp_stack for r in s]
     )
 
+    def share_label(v: float) -> str:
+        """One decimal below ten, none above."""
+        p = v * 100
+        return f"{p:.1f}" if p < 10 else str(round(p))
+
     shares = {
         "actual": basement_mean_share(actual_stack),
         "registered": [basement_mean_share(s) for s in reg_stack],
         "exploratory": [basement_mean_share(s) for s in exp_stack],
+    }
+    # The page prints these strings verbatim; it does no formatting of its own,
+    # so every numeral on screen is one this script computed.
+    shares["labels"] = {
+        "actual": share_label(shares["actual"]),
+        "registered": [share_label(v) for v in shares["registered"]],
+        "exploratory": [share_label(v) for v in shares["exploratory"]],
     }
 
     # ---- the six panels -------------------------------------------------
@@ -230,16 +242,13 @@ def main() -> int:
     out = ROOT / "viz" / "overview.html"
     out.write_text(page, encoding="utf-8")
 
-    def pct(v):
-        return f"{v * 100:.1f}%" if v * 100 < 10 else f"{round(v * 100)}%"
-
     print(f"wrote {out} ({out.stat().st_size} bytes)")
     print()
     print("basement mean share, final stage:")
-    print(f"  actual       {pct(shares['actual'])}     [results/frames.json]")
-    print(f"  registered   {pct(shares['registered'][-1])}      "
+    print(f"  actual       {shares['labels']['actual']}%     [results/frames.json]")
+    print(f"  registered   {shares['labels']['registered'][-1]}%      "
           f"[results/frames.json]")
-    print(f"  exploratory  {pct(shares['exploratory'][-1])}      "
+    print(f"  exploratory  {shares['labels']['exploratory'][-1]}%      "
           f"[results/exploratory_frames.json]")
     print()
     print("panels:")

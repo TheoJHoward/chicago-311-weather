@@ -105,7 +105,9 @@
   .why { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline); }
   .why-grid { display: grid; grid-template-columns: 150px 1fr; column-gap: 18px; }
   .why-plot { position: relative; min-width: 0; }
-  .why-plot svg { display: block; width: 100%; height: 74px; }
+  /* sized in viewport units, not pixels, so the band scales with the screen
+     and carries no fixed height of its own */
+  .why-plot svg { display: block; width: 100%; height: 8vh; }
   .lbl { position: absolute; white-space: nowrap; pointer-events: none; }
   .lbl-train { font-size: 11px; color: var(--ink-2); }
   .lbl-peak { font-size: 11px; font-weight: 600; color: var(--ink); }
@@ -250,9 +252,12 @@ function tintFor(i) {
   if (!focus || i === 0) { return null; }
   return "color-mix(in srgb, " + hues()[i] + " 26%, var(--surface))";
 }
-function pct(v) {
-  const p = v * 100;
-  return (p < 10 ? p.toFixed(1) : String(Math.round(p))) + "";
+/* The percentage strings are computed by the build from the committed results
+   and printed verbatim; the page formats no number of its own. */
+function shareLabel(key) {
+  return key === "actual"
+    ? D.basementShare.labels.actual
+    : D.basementShare.labels[key][stage];
 }
 
 /* ---- rows ---- */
@@ -356,11 +361,8 @@ function paintRows() {
       }
     });
 
-    const share = row.key === "actual"
-      ? D.basementShare.actual
-      : D.basementShare[row.key][stage];
     row.num.innerHTML = "";
-    row.num.appendChild(document.createTextNode(pct(share)));
+    row.num.appendChild(document.createTextNode(shareLabel(row.key)));
     const u = document.createElement("span");
     u.className = "ann-u"; u.textContent = "%";
     row.num.appendChild(u);
@@ -420,8 +422,9 @@ function paintWhy() {
         (D.daily.peakIndex / (n - 1)) * 100, 0);
   label("lbl-train", D.daily.trainLabel,
         (D.daily.trainIndex / (n - 1)) * 100, 17);
+  const plotH = svg.clientHeight || 74;
   label("lbl-floor", D.daily.floorLabel, 0.5,
-        Math.min(58, (1 - D.daily.floor / mx) * 74 + 3));
+        Math.min(plotH - 16, (1 - D.daily.floor / mx) * plotH + 3));
 
   host.querySelectorAll(".lbl").forEach(function (e) {
     e.style.marginLeft = "4px";
