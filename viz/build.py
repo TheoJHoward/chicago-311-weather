@@ -25,7 +25,12 @@ def build(template: Path, frames: Path, out: Path) -> None:
     out.write_text(page, encoding="utf-8")
 
 
-PAGES = ["year_strip", "year_ring"]
+# page name -> the results file its data constant is taken from
+PAGES = {
+    "year_strip": "frames.json",
+    "year_ring": "frames.json",
+    "year_strip_exploratory": "exploratory_frames.json",
+}
 
 
 def build_slider(template: Path, grid: Path, out: Path) -> None:
@@ -45,13 +50,14 @@ def build_slider(template: Path, grid: Path, out: Path) -> None:
 
 
 def main() -> int:
-    for name in PAGES:
+    for name, data_file in PAGES.items():
         template = ROOT / "viz" / f"{name}.template.html"
-        if not template.exists():
+        data = ROOT / "results" / data_file
+        if not template.exists() or not data.exists():
             continue
         out = ROOT / "viz" / f"{name}.html"
-        build(template, ROOT / "results" / "frames.json", out)
-        print(f"wrote {out} ({out.stat().st_size} bytes)")
+        build(template, data, out)
+        print(f"wrote {out} ({out.stat().st_size} bytes) from {data_file}")
 
     slider_t = ROOT / "viz" / "slider.template.html"
     slider_g = ROOT / "results" / "slider_grid.json"

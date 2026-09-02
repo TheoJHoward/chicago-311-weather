@@ -183,7 +183,24 @@ def test_viz_offline():
 def test_every_viz_page_offline():
     pages = sorted((ROOT / "viz").glob("*.html"))
     assert pages, "no visualization pages found"
+    names = {p.name for p in pages}
+    for expected in ["year_strip.html", "year_ring.html", "slider.html",
+                     "year_strip_exploratory.html"]:
+        assert expected in names, expected
     for path in pages:
         text = path.read_text(encoding="utf-8")
         for token in ["http", "src=", "@import"]:
             assert token not in text, f"{path.name}: {token}"
+
+
+def test_exploratory_page_is_labelled():
+    """The exploratory strip must say so on its face, and must not be
+    confusable with the registered page."""
+    path = ROOT / "viz" / "year_strip_exploratory.html"
+    text = path.read_text(encoding="utf-8")
+    assert ("EXPLORATORY — trend feature removed after the registered results "
+            "were seen. Not the registered analysis.") in text
+    assert "— exploratory" in text
+
+    registered = (ROOT / "viz" / "year_strip.html").read_text(encoding="utf-8")
+    assert "EXPLORATORY" not in registered
