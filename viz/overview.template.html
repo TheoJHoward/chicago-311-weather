@@ -33,9 +33,17 @@
     font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+  /* The composition is a fixed box. The stage is the frame it is shown in:
+     the box is scaled to fit whatever viewport it lands in, so the picture is
+     the same at every size instead of a layout that compresses. At 1920x912
+     the scale is 1 and the rules below divide the same 912px they used to
+     divide of the viewport. */
+  .stage { position: fixed; inset: 0; overflow: hidden; }
   .page {
-    height: 100vh; padding: 26px 32px 20px;
+    width: 1920px; height: 912px;
+    padding: 26px 32px 20px;
     display: flex; flex-direction: column; overflow: hidden;
+    transform-origin: top left;
   }
 
   /* ---- header ---- */
@@ -64,6 +72,18 @@
     margin-top: 7px; overflow: hidden;
   }
   .fill { height: 100%; width: 0; background: var(--accent); transition: width 240ms ease; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .btn {
+    font-family: inherit; font-size: 12px; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 4px; padding: 4px 10px; min-height: 28px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  /* a toggle shows the same filled dot the verdict chips use, when it is on */
+  .btn .dot { display: none; }
+  .btn.on .dot { display: block; background: var(--ink-2); }
   .keys { font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
 
   /* ---- main ---- */
@@ -109,9 +129,9 @@
   .why { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline); }
   .why-grid { display: grid; grid-template-columns: 150px 1fr; column-gap: 18px; }
   .why-plot { position: relative; min-width: 0; }
-  /* sized in viewport units, not pixels, so the band scales with the screen
-     and carries no fixed height of its own */
-  .why-plot svg { display: block; width: 100%; height: 8vh; }
+  /* 8% of the composition's 912px height, now stated in the composition's
+     own units; the stage scales it with everything else */
+  .why-plot svg { display: block; width: 100%; height: 73px; }
   .lbl { position: absolute; white-space: nowrap; pointer-events: none; }
   .lbl-train { font-size: 11px; color: var(--ink-2); }
   .lbl-peak { font-size: 11px; font-weight: 600; color: var(--ink); }
@@ -190,12 +210,39 @@
   .lk { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
   .lk i { display: block; width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; }
   .lk-a { border-top-color: var(--ink); }
+
+  /* Mode B. Below 1000px the composition is not scaled: it becomes an
+     ordinary document that stacks and scrolls, because a picture shrunk to a
+     phone's width is unreadable however faithful it is. */
+  @media (max-width: 999px) {
+    html, body { height: auto; overflow: auto; }
+    .stage { position: static; overflow: visible; }
+    .page {
+      width: auto; height: auto; overflow: visible;
+      padding: 18px 16px 16px; transform: none;
+    }
+    .main { grid-template-columns: 1fr; gap: 28px; }
+    .head { flex-direction: column; gap: 14px; }
+    .meter { min-width: 0; width: 100%; }
+    h1 { font-size: 22px; }
+    .rows { grid-template-rows: 150px 150px 150px; }
+    .rw { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; row-gap: 6px; }
+    .rw-lab { justify-content: flex-start; }
+    .rw-ann { flex-direction: row; align-items: baseline; gap: 8px; }
+    .ann-c { margin-top: 0; }
+    .mstrip { margin-left: 0; padding-right: 0; }
+    .mstrip div { font-size: 10px; }
+    .why-grid { grid-template-columns: 1fr; row-gap: 8px; }
+    .why-plot svg { height: 88px; }
+    .grid { grid-template-columns: 1fr; grid-template-rows: repeat(6, 150px); }
+  }
   .lk-r { border-top-color: var(--accent); }
   .lk-e { border-top-color: var(--accent); border-top-style: dashed; }
 </style>
 </head>
-<body>
-<div class="page">
+<body tabindex="-1">
+<div class="stage">
+<div class="page" id="page">
   <div class="head">
     <div class="head-l">
       <p class="eyebrow">Chicago 311 &times; daily weather &middot; held-out year, Sep 2025 &ndash; Aug 2026</p>
@@ -208,7 +255,16 @@
         <span class="meter-n" id="meterN">1 / 300 trees</span>
       </div>
       <div class="track"><div class="fill" id="meterFill"></div></div>
-      <div class="keys">space play &middot; &larr; &rarr; step &middot; b focus &middot; c counts &middot; r restart &middot; t theme</div>
+      <div class="btns">
+        <button type="button" class="btn" id="btnRestart" title="r">Restart</button>
+        <button type="button" class="btn" id="btnPrev" title="←">◀ Step</button>
+        <button type="button" class="btn" id="btnNext" title="→">Step ▶</button>
+        <button type="button" class="btn" id="btnPlay" title="space">Play</button>
+        <button type="button" class="btn" id="btnFocus" title="b"><span class="dot"></span>Focus</button>
+        <button type="button" class="btn" id="btnCounts" title="c"><span class="dot"></span>Counts</button>
+        <button type="button" class="btn" id="btnTheme" title="t"><span class="dot"></span>Theme</button>
+      </div>
+      <div class="keys">keys &middot; space &middot; &larr; &rarr; &middot; b &middot; c &middot; r &middot; t</div>
     </div>
   </div>
 
@@ -252,6 +308,7 @@ __PANELS_HTML__
       <span class="lk"><i class="lk-e"></i>model &middot; exploratory</span>
     </div>
   </footer>
+</div>
 </div>
 
 <script type="application/json" id="payload">__OVERVIEW_JSON__</script>
@@ -569,7 +626,7 @@ function stopTimer() { if (timer !== null) { clearTimeout(timer); timer = null; 
 function tick() {
   stopTimer();
   if (!playing) { return; }
-  if (stage >= N_STAGE - 1) { playing = false; return; }
+  if (stage >= N_STAGE - 1) { playing = false; syncControls(); return; }
   timer = setTimeout(function () {
     stage = stage + 1;
     render();
@@ -586,27 +643,108 @@ function step(delta) {
   render();
 }
 
-document.addEventListener("keydown", function (e) {
-  const k = e.key;
-  if (k === " " || k === "Spacebar") { e.preventDefault(); setPlaying(!playing); }
-  else if (k === "ArrowRight") { e.preventDefault(); step(1); }
-  else if (k === "ArrowLeft") { e.preventDefault(); step(-1); }
-  else if (k === "r" || k === "R") { setPlaying(false); stage = 0; render(); }
-  else if (k === "b" || k === "B") { focus = !focus; render(); }
-  else if (k === "c" || k === "C") { counts = !counts; render(); }
-  else if (k === "t" || k === "T") {
-    const root = document.documentElement;
-    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
-    render(); paintWhy();
-  }
+/* ---- actions ----------------------------------------------------------
+   One named handler per action. The keys and the on-screen buttons are two
+   entry points onto the same functions, never two implementations. */
+function restart() { setPlaying(false); stage = 0; render(); syncControls(); }
+function togglePlay() { setPlaying(!playing); syncControls(); }
+function toggleFocus() { focus = !focus; render(); syncControls(); }
+function toggleCounts() { counts = !counts; render(); syncControls(); }
+function toggleTheme() {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+  render(); paintWhy(); syncControls();
+}
+
+const ACTIONS = {
+  restart: restart,
+  prev: function () { step(-1); },
+  next: function () { step(1); },
+  play: togglePlay,
+  focus: toggleFocus,
+  counts: toggleCounts,
+  theme: toggleTheme
+};
+
+const KEYS = {
+  " ": ACTIONS.play,
+  "ArrowLeft": ACTIONS.prev,
+  "ArrowRight": ACTIONS.next,
+  "r": ACTIONS.restart,
+  "b": ACTIONS.focus,
+  "c": ACTIONS.counts,
+  "t": ACTIONS.theme
+};
+
+const BUTTONS = {
+  btnRestart: ACTIONS.restart,
+  btnPrev: ACTIONS.prev,
+  btnNext: ACTIONS.next,
+  btnPlay: ACTIONS.play,
+  btnFocus: ACTIONS.focus,
+  btnCounts: ACTIONS.counts,
+  btnTheme: ACTIONS.theme
+};
+
+Object.keys(BUTTONS).forEach(function (id) {
+  document.getElementById(id).addEventListener("click", BUTTONS[id]);
 });
 
-window.addEventListener("resize", function () { render(); paintWhy(); });
+function setToggle(id, on) {
+  document.getElementById(id).classList.toggle("on", on);
+}
+function syncControls() {
+  document.getElementById("btnPlay").textContent = playing ? "Pause" : "Play";
+  setToggle("btnFocus", focus);
+  setToggle("btnCounts", counts);
+  setToggle("btnTheme", document.documentElement.dataset.theme === "dark");
+}
+
+/* ---- keyboard ---------------------------------------------------------
+   Bound to the window, not an element, and the page takes focus on any
+   pointer press, so a single click or tap inside an embedded frame hands the
+   keyboard to the page rather than the host. */
+window.addEventListener("keydown", function (e) {
+  let k = e.key;
+  if (k === "Spacebar") { k = " "; }
+  if (k.length === 1) { k = k.toLowerCase(); }
+  const fn = KEYS[k];
+  if (!fn) { return; }
+  /* space and the arrows would otherwise scroll whatever is hosting us */
+  e.preventDefault();
+  fn();
+});
+
+function grabFocus() {
+  try { document.body.focus({ preventScroll: true }); } catch (err) { /* no-op */ }
+}
+document.addEventListener("pointerdown", grabFocus);
+
+/* ---- fit the composition to the frame --------------------------------- */
+const REFLOW = window.matchMedia("(max-width: 999px)");
+
+/* 1920 by 912 are the composition's own dimensions, set on .page in the
+   stylesheet; the scale is whichever axis runs out first. */
+function fit() {
+  const page = document.getElementById("page");
+  if (REFLOW.matches) { page.style.transform = ""; return; }
+  const k = Math.min(window.innerWidth / 1920, window.innerHeight / 912);
+  const x = (window.innerWidth - 1920 * k) / 2;
+  const y = (window.innerHeight - 912 * k) / 2;
+  page.style.transform = "translate(" + x.toFixed(2) + "px," + y.toFixed(2)
+                       + "px) scale(" + k + ")";
+}
+
+window.addEventListener("resize", function () { fit(); render(); paintWhy(); });
+if (REFLOW.addEventListener) { REFLOW.addEventListener("change", fit); }
 
 document.documentElement.dataset.theme = "light";
+fit();
 render();
 paintWhy();
-requestAnimationFrame(function () { render(); paintWhy(); });
+syncControls();
+grabFocus();
+requestAnimationFrame(function () { fit(); render(); paintWhy(); });
 </script>
 </body>
 </html>

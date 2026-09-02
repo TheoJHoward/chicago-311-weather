@@ -37,9 +37,9 @@ MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
 MINUS = "−"
 GRIDLINE_COUNTS = [10, 100, 1000]
 SMOOTH_WINDOW = 7
+COMP_W = 1920
+COMP_H = 912
 
-# Classes whose height must come from the flex band, never a pixel value.
-FLEXIBLE = (".rows", ".bars", ".bar", ".mult", ".panel", ".p-plot", ".why-plot")
 
 
 @pytest.fixture(scope="module")
@@ -82,24 +82,42 @@ def test_overview_offline(page):
         assert token not in page, token
 
 
-def test_overview_fits_by_construction(page):
+def test_overview_composition(page):
+    """The page is a fixed composition scaled to the frame, not a layout that
+    compresses. Below the reflow width it becomes an ordinary document."""
     rules = css_rules(page)
 
-    root = [d for sel, d in rules if sel == ".page"]
-    assert root, "no .page rule"
-    props = dict(declarations(root[0]))
-    assert props.get("height") in {"100vh", "100dvh"}, props.get("height")
+    comp = [d for sel, d in rules if sel == ".page"]
+    assert comp, "no .page rule"
+    props = dict(declarations(comp[0]))
+    assert props.get("width") == f"{COMP_W}px", props.get("width")
+    assert props.get("height") == f"{COMP_H}px", props.get("height")
     assert props.get("overflow") == "hidden", props.get("overflow")
+    assert props.get("transform-origin") == "top left", props
 
-    offenders = []
-    for sel, decl in rules:
-        if not any(token in sel for token in FLEXIBLE):
-            continue
-        for prop, val in declarations(decl):
-            if prop in ("height", "min-height") and re.search(r"\d\s*px", val):
-                offenders.append(f"{sel} {{ {prop}: {val} }}")
-    assert not offenders, ("fixed pixel height on a plot area — "
-                           + "; ".join(offenders))
+    stage = [d for sel, d in rules if sel == ".stage"]
+    assert stage, "no .stage rule"
+    sprops = dict(declarations(stage[0]))
+    assert sprops.get("position") == "fixed", sprops
+    assert sprops.get("overflow") == "hidden", sprops
+
+    # the scale is min(viewport width / 1920, viewport height / 912)
+    fit = re.search(r"function fit\(\)\s*\{.*?\n\}", page, re.S)
+    assert fit, "no fit function"
+    body = fit.group(1) if fit.groups() else fit.group(0)
+    scale = re.search(r"min\((.*?)\);", body, re.S)
+    assert scale, "no min() scale expression: " + body
+    expr = scale.group(1)
+    assert f"/ {COMP_W}" in expr, expr
+    assert f"/ {COMP_H}" in expr, expr
+
+    # a composition stated in pixels cannot also depend on the viewport
+    style = re.search(r"<style>(.*?)</style>", page, re.S).group(1)
+    units = re.findall(r"[0-9.]+(?:vh|vw|dvh|dvw)\b", style)
+    assert not units, units
+
+    assert re.search(r"@media \(max-width: 99\d px?\)|@media \(max-width: 999px\)",
+                     style), "no reflow media query"
 
 
 def test_overview_no_loop(page):
