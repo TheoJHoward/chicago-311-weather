@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chicago 311 weather slider</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --fg: #14171a;
+    --muted: #5b6470;
+    --panel: #ffffff;
+    --line: #d8dde3;
+    --pothole: #b45309;
+    --rodent: #6d28d9;
+    --basement: #0369a1;
+    --graffiti: #be185d;
+    --tree: #15803d;
+    --vehicle: #4b5563;
+  }
+  html[data-theme="dark"] {
+    --bg: #0e1013;
+    --fg: #f2f4f7;
+    --muted: #9aa4b2;
+    --panel: #171a1f;
+    --line: #2b3038;
+    --pothole: #f59e0b;
+    --rodent: #a78bfa;
+    --basement: #38bdf8;
+    --graffiti: #f472b6;
+    --tree: #4ade80;
+    --vehicle: #cbd5e1;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .wrap { padding: 26px 36px 18px 36px; max-width: 1500px; }
+  h1 { font-size: 40px; line-height: 1.1; margin: 0 0 8px 0; font-weight: 700; }
+  .subtitle { font-size: 24px; color: var(--muted); margin: 0 0 22px 0; }
+  .main { display: flex; gap: 34px; align-items: flex-start; flex-wrap: wrap; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 22px 26px;
+  }
+  .controls { flex: 1 1 460px; }
+  .ctl { margin-bottom: 26px; }
+  .ctl label { display: block; font-size: 24px; margin-bottom: 10px; }
+  .val { font-weight: 700; }
+  input[type="range"] { width: 100%; height: 34px; }
+  .snowrow { display: flex; align-items: center; gap: 14px; font-size: 24px; }
+  input[type="checkbox"] { width: 26px; height: 26px; }
+  .barbox { flex: 0 0 auto; text-align: center; }
+  .bar {
+    width: 190px; height: 380px;
+    display: flex; flex-direction: column-reverse;
+    border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; background: var(--panel);
+  }
+  .seg { width: 100%; height: 0; transition: height 220ms ease; }
+  .barcap { font-size: 20px; color: var(--muted); margin-top: 10px; }
+  .table { flex: 1 1 380px; }
+  .table h2 { font-size: 22px; margin: 0 0 12px 0; color: var(--muted); font-weight: 600; }
+  .trow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 22px; }
+  .swatch { width: 28px; height: 28px; border-radius: 5px; flex: 0 0 28px; }
+  .tname { flex: 1 1 auto; }
+  .tnum { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .tshare { color: var(--muted); width: 90px; text-align: right; font-variant-numeric: tabular-nums; }
+  footer { font-size: 18px; color: var(--muted); margin-top: 26px; line-height: 1.6; }
+  footer b { color: var(--fg); }
+  .c-pothole { background: var(--pothole); }
+  .c-rodent { background: var(--rodent); }
+  .c-basement { background: var(--basement); }
+  .c-graffiti { background: var(--graffiti); }
+  .c-tree { background: var(--tree); }
+  .c-vehicle { background: var(--vehicle); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>A toy: turn the weather, watch the complaints</h1>
+  <p class="subtitle">Six gradient-boosting models, each given only weather, asked what a day like this would bring.</p>
+
+  <div class="main">
+    <div class="panel controls">
+      <div class="ctl">
+        <label>Highest temperature: <span class="val" id="tmaxVal">10 &deg;C</span></label>
+        <input type="range" id="tmax" min="0" max="65" step="1" value="35">
+      </div>
+      <div class="ctl">
+        <label>Precipitation: <span class="val" id="precipVal">0 mm</span></label>
+        <input type="range" id="precip" min="0" max="3" step="1" value="0">
+      </div>
+      <div class="ctl snowrow">
+        <input type="checkbox" id="snow">
+        <label for="snow" style="margin:0">Snowfall of 5 cm</label>
+      </div>
+      <div class="ctl" style="margin-bottom:0">
+        <div class="barcap" id="ftNote">Freeze&ndash;thaw on this day: no</div>
+      </div>
+    </div>
+
+    <div class="barbox panel">
+      <div class="bar" id="bar"></div>
+      <div class="barcap">predicted shares</div>
+    </div>
+
+    <div class="panel table">
+      <h2>Predicted complaints for one such day</h2>
+      <div id="rows"></div>
+    </div>
+  </div>
+
+  <footer>
+    <b>This is a toy.</b> It is not a forecast and not a study result. Every input other than the three controls is held fixed, and those constants are simplifications:
+    the lowest temperature is always the highest minus 8 &deg;C, and the mean is the midpoint of the two;
+    the three preceding days are assumed identical to this one, so every lagged input equals its same-day value;
+    the seven-day totals for precipitation, rain and snow are seven times this day's value, and the seven-day freeze&ndash;thaw count is seven times this day's indicator;
+    rain is set equal to total precipitation, so the snow control adds snow without removing any rain;
+    the maximum wind speed is held at __WIND__ km/h, the median over the training days;
+    and the trend covariate is held at the last training day, __TLAST__.
+    Real days do not behave like this. The models behind it are the same WEATHER models the study fitted, with the same fixed hyperparameters, trained on days up to that date and never on the held-out year.
+  </footer>
+</div>
+
+<script>
+"use strict";
+const GRID = __GRID_JSON__;
+
+const CATS = ["pothole", "rodent", "basement", "graffiti", "tree debris", "abandoned vehicle"];
+const CLASS = {
+  "pothole": "c-pothole",
+  "rodent": "c-rodent",
+  "basement": "c-basement",
+  "graffiti": "c-graffiti",
+  "tree debris": "c-tree",
+  "abandoned vehicle": "c-vehicle"
+};
+const BAR_PX = 380;
+
+const bar = document.getElementById("bar");
+const rowsBox = document.getElementById("rows");
+const segs = {};
+const nums = {};
+const shares = {};
+
+CATS.forEach(function (c) {
+  const s = document.createElement("div");
+  s.className = "seg " + CLASS[c];
+  bar.appendChild(s);
+  segs[c] = s;
+
+  const row = document.createElement("div");
+  row.className = "trow";
+  const sw = document.createElement("div");
+  sw.className = "swatch " + CLASS[c];
+  const name = document.createElement("div");
+  name.className = "tname";
+  name.textContent = c;
+  const num = document.createElement("div");
+  num.className = "tnum";
+  const sh = document.createElement("div");
+  sh.className = "tshare";
+  row.appendChild(sw);
+  row.appendChild(name);
+  row.appendChild(num);
+  row.appendChild(sh);
+  rowsBox.appendChild(row);
+  nums[c] = num;
+  shares[c] = sh;
+});
+
+function render() {
+  const ti = parseInt(document.getElementById("tmax").value, 10);
+  const pi = parseInt(document.getElementById("precip").value, 10);
+  const si = document.getElementById("snow").checked ? 1 : 0;
+
+  const tmax = GRID.tmax[ti];
+  document.getElementById("tmaxVal").textContent = tmax + " °C";
+  document.getElementById("precipVal").textContent = GRID.precip[pi] + " mm";
+  const tmin = tmax - 8;
+  document.getElementById("ftNote").textContent =
+    "Freeze–thaw on this day: " + ((tmin < 0 && tmax > 0) ? "yes" : "no")
+    + "  (lowest temperature " + tmin + " °C)";
+
+  const vals = {};
+  let total = 0;
+  CATS.forEach(function (c) {
+    const v = GRID.categories[c][si][pi][ti];
+    vals[c] = v;
+    total += v;
+  });
+
+  CATS.forEach(function (c) {
+    const frac = total > 0 ? vals[c] / total : 0;
+    segs[c].style.height = (BAR_PX * frac).toFixed(2) + "px";
+    nums[c].textContent = Math.round(vals[c]);
+    shares[c].textContent = (100 * frac).toFixed(1) + "%";
+  });
+}
+
+["tmax", "precip", "snow"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", render);
+});
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "t" || e.key === "T") {
+    const root = document.documentElement;
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+  }
+});
+
+document.documentElement.dataset.theme = "light";
+render();
+</script>
+</body>
+</html>

@@ -27,8 +27,10 @@ The two exploratory categories carried no prediction. Weather recovered most of 
 - `PREREG_MAPPING.md` — category to request-type strings, derived mechanically from the registration's keyword rule.
 - `DEVIATIONS.md` — every departure from the registration.
 - `NOTES.md` — the data as found, including per-type coverage gaps.
-- `results/` — written by the study run: `results.md`, `results.json`, `frames.json`, and `positive_controls.json`.
+- `results/` — written by the runs: `results.md`, `results.json`, `frames.json`, `positive_controls.json`, and `slider_grid.json`.
 - `viz/year_strip.html` — a self-contained offline page showing the WEATHER model's twelve test-year months filling in as trees are added, beside the actual months.
+- `viz/year_ring.html` — the same data as two radial rings, actual and model side by side.
+- `viz/slider.html` — a toy: turn the weather, watch the predicted mix of complaints. Every simplification it makes is stated on the page.
 - `data/` — the pulled data: all-time counts per request type, daily weather, daily counts by type, and the joined daily table.
 
 ## Reproduce
@@ -39,6 +41,6 @@ pytest -q
 python -m study.run
 ```
 
-The positive controls run inside `pytest` and must pass before the study is believed: a weather-driven synthetic target must be learned by WEATHER and not by CLOCK, a calendar-driven one the other way round, and a shuffled target by neither. `python viz/build.py` rebuilds the visualization from `results/frames.json`.
+The positive controls run inside `pytest` and must pass before the study is believed: a weather-driven synthetic target must be learned by WEATHER and not by CLOCK, a calendar-driven one the other way round, and a shuffled target by neither. `python viz/build.py` rebuilds the pages from `results/frames.json` and `results/slider_grid.json`; `python viz/build_slider.py` refits the toy's grid.
 
 License: MIT.
