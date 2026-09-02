@@ -211,10 +211,11 @@
   .lk i { display: block; width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; }
   .lk-a { border-top-color: var(--ink); }
 
-  /* Mode B. Below 1000px the composition is not scaled: it becomes an
-     ordinary document that stacks and scrolls, because a picture shrunk to a
-     phone's width is unreadable however faithful it is. */
-  @media (max-width: 999px) {
+  /* Mode B, for phones only. Everything 600px and wider gets the fitted
+     composition; below that the page is not scaled but becomes an ordinary
+     document that stacks and scrolls, because a picture shrunk to a phone's
+     width is unreadable however faithful it is. */
+  @media (max-width: 599px) {
     html, body { height: auto; overflow: auto; }
     .stage { position: static; overflow: visible; }
     .page {
@@ -721,7 +722,7 @@ function grabFocus() {
 document.addEventListener("pointerdown", grabFocus);
 
 /* ---- fit the composition to the frame --------------------------------- */
-const REFLOW = window.matchMedia("(max-width: 999px)");
+const REFLOW = window.matchMedia("(max-width: 599px)");
 
 /* 1920 by 912 are the composition's own dimensions, set on .page in the
    stylesheet; the scale is whichever axis runs out first. */

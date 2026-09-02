@@ -39,6 +39,8 @@ GRIDLINE_COUNTS = [10, 100, 1000]
 SMOOTH_WINDOW = 7
 COMP_W = 1920
 COMP_H = 912
+# below this width the page stops scaling and stacks; phones only
+REFLOW_MAX = 599
 
 
 
@@ -75,6 +77,25 @@ def declarations(decl: str):
             prop, val = part.split(":", 1)
             out.append((prop.strip().lower(), val.strip().lower()))
     return out
+
+
+def test_site_files():
+    """The repository serves itself as a site: Jekyll is switched off and the
+    root is a pointer at the page."""
+    nojekyll = ROOT / ".nojekyll"
+    assert nojekyll.exists(), ".nojekyll is missing"
+    assert nojekyll.stat().st_size == 0, ".nojekyll is not empty"
+
+    index = ROOT / "index.html"
+    assert index.exists(), "index.html is missing"
+    text = index.read_text(encoding="utf-8")
+    assert "url=viz/overview.html" in text, text
+
+    # The redirect is relative, so the file carries no absolute URL. A bare
+    # "http" check cannot be used here: the redirect itself is an http-equiv
+    # meta element, and that attribute name contains the word.
+    for token in ["http://", "https://", "src=", "@import"]:
+        assert token not in text, token
 
 
 def test_overview_offline(page):
@@ -116,8 +137,11 @@ def test_overview_composition(page):
     units = re.findall(r"[0-9.]+(?:vh|vw|dvh|dvw)\b", style)
     assert not units, units
 
-    assert re.search(r"@media \(max-width: 99\d px?\)|@media \(max-width: 999px\)",
-                     style), "no reflow media query"
+    # the stacked reflow is for phones; every desktop frame gets the
+    # composition, scaled
+    assert f"@media (max-width: {REFLOW_MAX}px)" in style, "no reflow query"
+    assert f'matchMedia("(max-width: {REFLOW_MAX}px)")' in page, \
+        "the script's breakpoint does not match the stylesheet's"
 
 
 CONTROLS = [
