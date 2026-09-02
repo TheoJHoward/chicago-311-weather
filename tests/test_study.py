@@ -6,6 +6,7 @@ that fails stops the study; it is never adjusted toward a pass.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -156,6 +157,44 @@ def test_pc3_shuffle(feat, masks):
     PC_SKILLS["PC3_shuffled_pothole_target"] = sk
     for m in ["WEATHER", "CLOCK", "BOTH"]:
         assert abs(sk[m]) < PC3_SKILL_ABS_MAX, (m, sk)
+
+
+def test_run_is_deterministic(feat, masks):
+    """The same fit twice must give the same numbers. Fixed random_state is
+    only a promise; this checks it."""
+    train, test = masks
+    y = target(feat, "pothole")
+    first = run_category(feat, y, train, test)["mae"]
+    second = run_category(feat, y, train, test)["mae"]
+    assert set(first) == set(second)
+    for m in first:
+        assert first[m] == second[m], (m, first[m], second[m])
+
+
+# SHA-256 of the git blob content of the registered files, taken with
+# `git show 6dd3099:<path>` at the commit that closed the registered study.
+# Hashing is done on LF-normalised bytes so that the digests hold on a
+# checkout that converts line endings, which is what git stores and compares.
+REGISTERED_SHA256 = {
+    "results/results.json":
+        "7aa2a3e8836a9145c2960cc6249d010add5a416d7a63dfaa04f59fa2b832f488",
+    "results/results.md":
+        "fa8a527d7d7aee92e8c5cd2b56d488d654250d40112e0a95d91274e1436e8e4e",
+    "results/frames.json":
+        "6d50f3730eb91b4e12835cd79073d7398006ad09e412d47bcadf1a5a40f17194",
+    "PREREG.md":
+        "0b0ef5def0f0eb081c0c7ec00c9df19c9a384de58a35b1ca5f9cb8c3b6d4d426",
+    "PREREG_MAPPING.md":
+        "89600fa166f3ce261b1498262532c411e6a444b0dfa9d612e5dd9ef29a9197be",
+}
+
+
+@pytest.mark.parametrize("rel", sorted(REGISTERED_SHA256))
+def test_registered_results_untouched(rel):
+    """The registration and the scored results are frozen. Any edit to them,
+    for any reason, fails the suite."""
+    raw = (ROOT / rel).read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(raw).hexdigest() == REGISTERED_SHA256[rel], rel
 
 
 def test_thresholds_match_prereg():

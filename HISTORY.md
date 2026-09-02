@@ -87,3 +87,12 @@ of 9. Both figures describe the same defect; they differ because the two
 environments run different scikit-learn versions, which is the same
 version-sensitivity recorded in DISCUSSION.md. The measured figure is written to
 `results/trend_diagnostic.json` by the exploratory run.
+
+## 2026-09-02 — A commit and a push were issued in one invocation
+
+The commit of `results/exploratory_no_trend.md` and its sibling outputs
+(`fc5a5ec`) and the push that followed it were issued together, rather than as
+separate acts each following a read of the previous one's exit status. Both
+succeeded and the state is correct. Recorded because the practice this
+repository states is that irreversible acts are taken one at a time, and this
+one was not.

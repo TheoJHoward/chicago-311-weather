@@ -17,6 +17,8 @@ Four models per category, all with identical fixed hyperparameters, differing on
 | P3 | basement | skill(WEATHER) > skill(CLOCK) | skill(WEATHER) = 0.0846, skill(CLOCK) = -0.0799 | HELD |
 | P4 | graffiti | recovery < 0.25, or UNDEFINED with skill(WEATHER) < 0.05 | recovery = -0.0337 | HELD |
 
+Caveats and a post-hoc exploratory comparison: DISCUSSION.md.
+
 P1 missed: weather recovered about a quarter of the calendar's skill on potholes, not the half that was predicted from freeze–thaw. Full per-category tables, bootstrap intervals and the seasonal-naive reference are in `results/results.md`.
 
 The two exploratory categories carried no prediction. Weather recovered most of the calendar's skill on tree debris (recovery 0.8580) and none of it on abandoned vehicles (recovery -0.0166).
@@ -40,6 +42,8 @@ pip install -e .
 pytest -q
 python -m study.run
 ```
+
+The committed results were produced with Python 3.12.10 and scikit-learn 1.9.0; the full set of pinned versions is in `requirements-lock.txt`. Verdicts reproduce across nearby versions; the last two decimals may not.
 
 The positive controls run inside `pytest` and must pass before the study is believed: a weather-driven synthetic target must be learned by WEATHER and not by CLOCK, a calendar-driven one the other way round, and a shuffled target by neither. `python viz/build.py` rebuilds the pages from `results/frames.json` and `results/slider_grid.json`; `python viz/build_slider.py` refits the toy's grid.
 

@@ -1,0 +1,35 @@
+# Versions the committed results in results/ were produced with.
+# Python 3.12.10 on Windows.
+#
+# The five declared dependencies, then their direct dependencies, from
+# pip freeze at the commit that added this file.
+#
+# Verdicts reproduce across nearby versions; the last two decimals may not.
+# See DISCUSSION.md, "Reproducibility".
+
+# declared
+numpy==2.5.2
+pandas==3.0.5
+pytest==9.1.1
+requests==2.34.2
+scikit-learn==1.9.0
+
+# direct dependencies of the five above
+certifi==2026.7.22
+charset-normalizer==3.5.1
+colorama==0.4.6
+idna==3.19
+iniconfig==2.3.0
+joblib==1.6.0
+narwhals==2.25.0
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.21.0
+python-dateutil==2.9.0.post0
+scipy==1.18.1
+threadpoolctl==3.6.0
+tzdata==2026.3
+urllib3==2.7.0
+
+# Present in the environment but not a direct dependency of any of the five,
+# and therefore not listed above: cloudpickle==3.1.2, six==1.17.0.
