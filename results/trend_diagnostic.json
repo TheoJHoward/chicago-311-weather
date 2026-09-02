@@ -1,0 +1,56 @@
+{
+  "pothole": {
+    "trend_distinct_predictions_on_test": 1,
+    "trend_constant_log1p": 4.149609,
+    "trend_implied_counts_per_day": 62.409202452301535,
+    "test_median_count_per_day": 105.99999999999996,
+    "mae_trend": 0.7276042678231434,
+    "mae_seasonal_naive": 0.4970848097965059,
+    "trend_mae_over_naive_mae": 1.4637427124779903
+  },
+  "rodent": {
+    "trend_distinct_predictions_on_test": 1,
+    "trend_constant_log1p": 5.074186,
+    "trend_implied_counts_per_day": 158.84202759920524,
+    "test_median_count_per_day": 110.99999999999996,
+    "mae_trend": 0.5826170038052519,
+    "mae_seasonal_naive": 0.41161493078989253,
+    "trend_mae_over_naive_mae": 1.415441861370784
+  },
+  "basement": {
+    "trend_distinct_predictions_on_test": 1,
+    "trend_constant_log1p": 4.714095,
+    "trend_implied_counts_per_day": 110.50785089101454,
+    "test_median_count_per_day": 9.000000000000002,
+    "mae_trend": 2.291943680562498,
+    "mae_seasonal_naive": 0.738275497431398,
+    "trend_mae_over_naive_mae": 3.1044558413987864
+  },
+  "graffiti": {
+    "trend_distinct_predictions_on_test": 1,
+    "trend_constant_log1p": 5.432821,
+    "trend_implied_counts_per_day": 227.7937631101165,
+    "test_median_count_per_day": 274.9999999999999,
+    "mae_trend": 0.5393090096622224,
+    "mae_seasonal_naive": 0.5886175340977433,
+    "trend_mae_over_naive_mae": 0.9162299429100375
+  },
+  "tree debris": {
+    "trend_distinct_predictions_on_test": 1,
+    "trend_constant_log1p": 4.733008,
+    "trend_implied_counts_per_day": 112.6368684672604,
+    "test_median_count_per_day": 58.000000000000014,
+    "mae_trend": 1.119001186060521,
+    "mae_seasonal_naive": 0.6173360173844219,
+    "trend_mae_over_naive_mae": 1.8126290294896348
+  },
+  "abandoned vehicle": {
+    "trend_distinct_predictions_on_test": 1,
+    "trend_constant_log1p": 4.974889,
+    "trend_implied_counts_per_day": 143.73275892028164,
+    "test_median_count_per_day": 157.00000000000003,
+    "mae_trend": 0.340878686888369,
+    "mae_seasonal_naive": 0.45129412389694107,
+    "trend_mae_over_naive_mae": 0.7553359745632608
+  }
+}
