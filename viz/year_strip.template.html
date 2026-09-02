@@ -146,10 +146,12 @@
 "use strict";
 const FRAMES = __FRAMES_JSON__;
 
-/* Stack order is bottom to top and is the colourblind-safety mechanism:
-   adjacent bands were checked for separation under simulated colour-vision
-   deficiency. It is not reordered. */
-const CATS = ["pothole", "rodent", "basement", "graffiti", "tree debris",
+/* Categories in stack order, bottom to top. The colour slots are fixed: their
+   sequence and their hex values are what was checked for separation under
+   simulated colour-vision deficiency, and are never re-stepped. Basement sits
+   at the baseline because it is the only category whose model and actual bands
+   differ materially, and a baseline is where that difference reads. */
+const CATS = ["basement", "pothole", "rodent", "graffiti", "tree debris",
               "abandoned vehicle"];
 const CLASS = ["c1", "c2", "c3", "c4", "c5", "c6"];
 const PALETTE = {
