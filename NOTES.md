@@ -105,3 +105,11 @@ period, which ends 2025-08-31. The other two fall in July 2023, also training.
 
 The error was in the note only. No number in `results/` depended on it, and the
 split itself is asserted by `test_split_no_overlap`.
+
+## Correction — 2026-09-01 (date stamp of the section above)
+
+The heading above reads "Correction — 2026-09-02". The correct date is
+2026-09-01. The section was written at about 19:25 America/Chicago on
+2026-09-01; the date was read from a shell that returned the UTC date instead.
+The heading is left as written. HISTORY.md records the same correction. Nothing
+but the date stamp is affected.

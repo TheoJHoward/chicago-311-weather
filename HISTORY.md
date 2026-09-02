@@ -96,3 +96,17 @@ separate acts each following a read of the previous one's exit status. Both
 succeeded and the state is correct. Recorded because the practice this
 repository states is that irreversible acts are taken one at a time, and this
 one was not.
+
+## 2026-09-01 — Every entry above is stamped with the wrong date
+
+The six entries above, and the correction section added to `NOTES.md` on the
+same day, are headed 2026-09-02. The correct date is **2026-09-01**. This entry
+supersedes those date stamps; the stamps themselves are left as written.
+
+The work they describe was done at about 19:20 to 19:30 America/Chicago on
+2026-09-01, which the commits `3f21680` through `5ce75c3` record as
+17:21 to 17:29 at UTC−07:00, the machine's own zone. The date was taken from a
+shell whose timezone setting was ignored, so it returned the UTC date — by then
+already past midnight — instead of the Chicago date the repository dates by.
+
+No content other than the date stamps is affected.
