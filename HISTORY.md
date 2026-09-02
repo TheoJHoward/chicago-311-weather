@@ -154,3 +154,52 @@ overflow and no fixed pixel height on the plot band — by
 `tests/test_viz.py::test_pages_declare_viewport_fit`, which needs no browser,
 no server and no launch configuration. Rendered-viewport measurement, if it is
 wanted, happens outside this repository.
+
+## 2026-09-02 — Basement moved to the first position in the stack
+
+The assignment of categories to colour slots changed on all four pages under
+`viz/`. Basement now occupies the first stack position — the baseline on the
+two strip pages and the slider, the innermost band on the ring. Pothole and
+rodent shift up one place each; graffiti, tree debris and abandoned vehicle
+keep the positions they had.
+
+The palette itself did not change. The sequence of colour slots and the hex
+value in each slot are byte-identical to the previous commit, on every page, so
+every adjacent colour pair on screen is the pair that was checked for
+separation under simulated colour-vision deficiency. This was a permutation of
+category labels across fixed slots, not a new palette. What changed in each
+page is the list of category names and the comment above it, and nothing else.
+
+The reason is that basement is the only category whose model band differs
+materially from its actual band, and it was previously drawn mid-stack, where a
+band floats between two others with no fixed edge to read it against. Mean band
+height across the twelve test months on the registered page, at a plot band of
+297 px:
+
+| Category | ACTUAL | MODEL | ratio |
+|---|---|---|---|
+| basement | 7.9 px | 42.0 px | 5.3 |
+| pothole | 47.6 px | 34.1 px | 0.7 |
+| rodent | 44.6 px | 44.0 px | 1.0 |
+| graffiti | 101.5 px | 90.7 px | 0.9 |
+| tree debris | 37.3 px | 28.2 px | 0.8 |
+| abandoned vehicle | 58.2 px | 58.1 px | 1.0 |
+
+These heights are the mean monthly share of the six-category total multiplied
+by the plot band height, computed from `results/frames.json` at the final
+training stage. Basement is the band the pages exist to show: the registered
+TREND floor carries the end of the training period across the whole test year,
+and the model's basement share is more than five times the share actually
+observed. Every other category moves by a factor between 0.7 and 1.0.
+
+No registered file, no result and no number changed.
+
+The entry above this one contains the sentence "Basement is no longer rendered
+in blue." That sentence described the state at the commit it was written for
+and is superseded here: basement now occupies the first colour slot, which is
+the blue one, `#2a78d6` in light and `#3987e5` in dark. The sentence is left as
+written. A search of the repository's prose for colour words — the same nine
+markdown files and the same thirteen terms as before — found matches only
+inside this ledger, all of them in entries describing the colour scheme itself
+rather than describing the chart, and this sentence was the only one the
+reassignment made false.
